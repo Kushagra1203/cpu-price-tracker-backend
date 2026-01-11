@@ -1,0 +1,174 @@
+name,brand,series,generation,cores,threads,base_clock_ghz,tdp_watt
+AMD Athlon 3000G,AMD,Others,Others,2,4,3.5,35
+AMD Ryzen 3 2200G,AMD,Ryzen 3,AMD 2nd Generation,4,4,3.5,65
+AMD Ryzen 3 3100,AMD,Ryzen 3,AMD 3rd Generation,4,8,3.6,65
+AMD Ryzen 3 3200G,AMD,Ryzen 3,AMD 3rd Generation,4,4,3.6,65
+AMD Ryzen 3 3300X,AMD,Ryzen 3,AMD 3rd Generation,4,8,3.8,65
+AMD Ryzen 3 4100,AMD,Ryzen 3,AMD 4th Generation,4,8,3.8,65
+AMD Ryzen 3 4300G,AMD,Ryzen 3,AMD 4th Generation,4,8,3.8,65
+AMD Ryzen 3 Pro 4350G,AMD,Ryzen 3,Others,4,8,3.8,65
+AMD Ryzen 5 1600X,AMD,Ryzen 5,AMD 1st Generation,6,12,3.6,95
+AMD Ryzen 5 3400G,AMD,Ryzen 5,AMD 3rd Generation,4,8,3.7,65
+AMD Ryzen 5 3500,AMD,Ryzen 5,AMD 3rd Generation,6,6,3.6,65
+AMD Ryzen 5 3500X,AMD,Ryzen 5,AMD 3rd Generation,6,6,3.6,65
+AMD Ryzen 5 3600,AMD,Ryzen 5,AMD 3rd Generation,6,12,3.6,65
+AMD Ryzen 5 3600XT,AMD,Ryzen 5,AMD 3rd Generation,6,12,3.8,95
+AMD Ryzen 5 4500,AMD,Ryzen 5,AMD 4th Generation,6,12,3.6,65
+AMD Ryzen 5 4600G,AMD,Ryzen 5,AMD 4th Generation,6,12,3.7,65
+AMD Ryzen 5 5500,AMD,Ryzen 5,AMD 5th Generation,6,12,3.6,65
+AMD Ryzen 5 5500GT,AMD,Ryzen 5,AMD 5th Generation,6,12,3.6,65
+AMD Ryzen 5 5600,AMD,Ryzen 5,AMD 5th Generation,6,12,3.5,65
+AMD Ryzen 5 5600G,AMD,Ryzen 5,AMD 5th Generation,6,12,3.9,65
+AMD Ryzen 5 5600GT,AMD,Ryzen 5,AMD 5th Generation,6,12,3.6,65
+AMD Ryzen 5 5600T,AMD,Ryzen 5,AMD 5th Generation,6,12,2.9,35
+AMD Ryzen 5 5600X,AMD,Ryzen 5,AMD 5th Generation,6,12,3.7,65
+AMD Ryzen 5 5600XT,AMD,Ryzen 5,AMD 5th Generation,6,12,3.7,95
+AMD Ryzen 5 7600,AMD,Ryzen 5,AMD 7th Generation,6,12,3.8,65
+AMD Ryzen 5 7600X,AMD,Ryzen 5,AMD 7th Generation,6,12,4.7,105
+AMD Ryzen 5 7600X3D,AMD,Ryzen 5,AMD 7th Generation,6,12,4.4,120
+AMD Ryzen 5 8400F,AMD,Ryzen 5,AMD 8th Generation,6,12,4.2,65
+AMD Ryzen 5 8500G,AMD,Ryzen 5,AMD 8th Generation,6,12,3.5,65
+AMD Ryzen 5 8600G,AMD,Ryzen 5,AMD 8th Generation,6,12,4.3,65
+AMD Ryzen 5 9600X,AMD,Ryzen 5,AMD 9th Generation,6,12,3.9,65
+AMD Ryzen 5 Pro 4650G,AMD,Ryzen 5,Others,6,12,3.7,65
+AMD Ryzen 7 3800XT,AMD,Ryzen 7,AMD 3rd Generation,8,16,3.9,105
+AMD Ryzen 7 4700S,AMD,Ryzen 7,AMD 4th Generation,8,16,3.6,65
+AMD Ryzen 7 5700,AMD,Ryzen 7,AMD 5th Generation,8,16,3.7,65
+AMD Ryzen 7 5700G,AMD,Ryzen 7,AMD 5th Generation,8,16,3.8,65
+AMD Ryzen 7 5700X,AMD,Ryzen 7,AMD 5th Generation,8,16,3.4,65
+AMD Ryzen 7 5700X3D,AMD,Ryzen 7,AMD 5th Generation,8,16,3.0,65
+AMD Ryzen 7 5800X,AMD,Ryzen 7,AMD 5th Generation,8,16,3.8,105
+AMD Ryzen 7 5800X3D,AMD,Ryzen 7,AMD 5th Generation,8,16,3.4,105
+AMD Ryzen 7 5800XT,AMD,Ryzen 7,AMD 5th Generation,8,16,3.9,105
+AMD Ryzen 7 7700,AMD,Ryzen 7,AMD 7th Generation,8,16,3.8,65
+AMD Ryzen 7 7700X,AMD,Ryzen 7,AMD 7th Generation,8,16,4.5,105
+AMD Ryzen 7 7800X3D,AMD,Ryzen 7,AMD 7th Generation,8,16,4.2,120
+AMD Ryzen 7 8700F,AMD,Ryzen 7,AMD 8th Generation,8,16,4.1,65
+AMD Ryzen 7 8700G,AMD,Ryzen 7,AMD 8th Generation,8,16,4.2,65
+AMD Ryzen 7 9700X,AMD,Ryzen 7,AMD 9th Generation,8,16,3.8,65
+AMD Ryzen 7 9800X3D,AMD,Ryzen 7,AMD 9th Generation,8,16,4.0,120
+AMD Ryzen 7 Pro 4750G,AMD,Ryzen 7,Others,8,16,3.6,65
+AMD Ryzen 9 3900XT,AMD,Ryzen 9,AMD 3rd Generation,12,24,3.8,105
+AMD Ryzen 9 5900X,AMD,Ryzen 9,AMD 5th Generation,12,24,3.7,105
+AMD Ryzen 9 5900XT,AMD,Ryzen 9,AMD 5th Generation,12,24,3.8,105
+AMD Ryzen 9 5950X,AMD,Ryzen 9,AMD 5th Generation,16,32,3.4,105
+AMD Ryzen 9 7900,AMD,Ryzen 9,AMD 7th Generation,12,24,3.7,65
+AMD Ryzen 9 7900X,AMD,Ryzen 9,AMD 7th Generation,12,24,4.7,170
+AMD Ryzen 9 7900X3D,AMD,Ryzen 9,AMD 7th Generation,12,24,4.4,120
+AMD Ryzen 9 7950X,AMD,Ryzen 9,AMD 7th Generation,16,32,4.5,170
+AMD Ryzen 9 7950X3D,AMD,Ryzen 9,AMD 7th Generation,16,32,4.2,120
+AMD Ryzen 9 9900X,AMD,Ryzen 9,AMD 9th Generation,12,24,4.4,120
+AMD Ryzen 9 9900X3D,AMD,Ryzen 9,AMD 9th Generation,12,24,4.1,120
+AMD Ryzen 9 9950X,AMD,Ryzen 9,AMD 9th Generation,16,32,4.3,170
+AMD Ryzen 9 9950X3D,AMD,Ryzen 9,AMD 9th Generation,16,32,4.1,170
+AMD Ryzen Threadripper 2920X,AMD,Threadripper,AMD Threadripper 2000,12,24,3.5,180
+AMD Ryzen Threadripper 7960X,AMD,Threadripper,AMD Threadripper 7000,24,48,4.2,350
+AMD Ryzen Threadripper 7970X,AMD,Threadripper,AMD Threadripper 7000,32,64,4.0,350
+AMD Ryzen Threadripper 7980X,AMD,Threadripper,AMD Threadripper 7000,64,128,3.2,350
+AMD Ryzen Threadripper 9960X,AMD,Threadripper,AMD Threadripper 9000,24,48,4.3,350
+AMD Ryzen Threadripper 9970X,AMD,Threadripper,AMD Threadripper 9000,32,64,4.0,350
+AMD Ryzen Threadripper 9980X,AMD,Threadripper,AMD Threadripper 9000,64,128,3.5,350
+AMD Ryzen Threadripper Pro 5955WX,AMD,Threadripper,AMD Threadripper 5000,16,32,4.0,280
+AMD Ryzen Threadripper Pro 5965WX,AMD,Threadripper,AMD Threadripper 5000,24,48,3.8,280
+AMD Ryzen Threadripper Pro 5975WX,AMD,Threadripper,AMD Threadripper 5000,32,64,3.6,280
+AMD Ryzen Threadripper Pro 5995WX,AMD,Threadripper,AMD Threadripper 5000,64,128,2.7,280
+AMD Ryzen Threadripper Pro 7965WX,AMD,Threadripper,AMD Threadripper 7000,24,48,4.2,350
+AMD Ryzen Threadripper Pro 7975WX,AMD,Threadripper,AMD Threadripper 7000,32,64,4.0,350
+AMD Ryzen Threadripper Pro 7985WX,AMD,Threadripper,AMD Threadripper 7000,64,128,3.2,350
+AMD Ryzen Threadripper Pro 7995WX,AMD,Threadripper,AMD Threadripper 7000,96,192,2.5,350
+AMD Ryzen Threadripper Pro 9955WX,AMD,Threadripper,AMD Threadripper 9000,16,32,4.1,350
+AMD Ryzen Threadripper Pro 9965WX,AMD,Threadripper,AMD Threadripper 9000,24,48,4.0,350
+AMD Ryzen Threadripper Pro 9975WX,AMD,Threadripper,AMD Threadripper 9000,32,64,3.9,350
+AMD Ryzen Threadripper Pro 9985WX,AMD,Threadripper,AMD Threadripper 9000,64,128,3.1,350
+AMD Ryzen Threadripper Pro 9995WX,AMD,Threadripper,AMD Threadripper 9000,96,192,2.6,350
+Intel Core Ultra 5 225,Intel,Intel Core Ultra 5,Intel Ultra Generation,10,12,3.0,45
+Intel Core Ultra 5 225F,Intel,Intel Core Ultra 5,Intel Ultra Generation,10,12,3.0,45
+Intel Core Ultra 5 245K,Intel,Intel Core Ultra 5,Intel Ultra Generation,14,18,3.6,125
+Intel Core Ultra 5 245KF,Intel,Intel Core Ultra 5,Intel Ultra Generation,14,18,3.6,125
+Intel Core Ultra 7 265K,Intel,Intel Core Ultra 7,Intel Ultra Generation,16,22,3.6,125
+Intel Core Ultra 7 265KF,Intel,Intel Core Ultra 7,Intel Ultra Generation,16,22,3.6,125
+Intel Core Ultra 9 285K,Intel,Intel Core Ultra 9,Intel Ultra Generation,24,32,3.5,125
+Intel Core i3 10100,Intel,Intel Core i3,Intel 10th Generation,4,8,3.6,65
+Intel Core i3 10100F,Intel,Intel Core i3,Intel 10th Generation,4,8,3.6,65
+Intel Core i3 10105,Intel,Intel Core i3,Intel 10th Generation,4,8,3.7,65
+Intel Core i3 10105F,Intel,Intel Core i3,Intel 10th Generation,4,8,3.7,65
+Intel Core i3 12100,Intel,Intel Core i3,Intel 12th Generation,4,8,3.3,60
+Intel Core i3 12100F,Intel,Intel Core i3,Intel 12th Generation,4,8,3.3,58
+Intel Core i3 13100,Intel,Intel Core i3,Intel 13th Generation,4,8,3.4,60
+Intel Core i3 13100F,Intel,Intel Core i3,Intel 13th Generation,4,8,3.4,58
+Intel Core i3 14100,Intel,Intel Core i3,Intel 14th Generation,4,8,3.5,60
+Intel Core i3 14100F,Intel,Intel Core i3,Intel 14th Generation,4,8,3.5,58
+Intel Core i3 9350KF,Intel,Intel Core i3,Intel 9th Generation,4,4,4.0,91
+Intel Core i5 10400,Intel,Intel Core i5,Intel 10th Generation,6,12,2.9,65
+Intel Core i5 10400F,Intel,Intel Core i5,Intel 10th Generation,6,12,2.9,65
+Intel Core i5 10500,Intel,Intel Core i5,Intel 10th Generation,6,12,3.1,65
+Intel Core i5 10600,Intel,Intel Core i5,Intel 10th Generation,6,12,3.3,65
+Intel Core i5 10600K,Intel,Intel Core i5,Intel 10th Generation,6,12,4.1,125
+Intel Core i5 11400,Intel,Intel Core i5,Intel 11th Generation,6,12,2.6,65
+Intel Core i5 11400F,Intel,Intel Core i5,Intel 11th Generation,6,12,2.6,65
+Intel Core i5 11500,Intel,Intel Core i5,Intel 11th Generation,6,12,2.7,65
+Intel Core i5 12400,Intel,Intel Core i5,Intel 12th Generation,6,12,2.5,65
+Intel Core i5 12400F,Intel,Intel Core i5,Intel 12th Generation,6,12,2.5,65
+Intel Core i5 12500,Intel,Intel Core i5,Intel 12th Generation,6,12,3.0,65
+Intel Core i5 12600K,Intel,Intel Core i5,Intel 12th Generation,10,16,3.7,125
+Intel Core i5 12600KF,Intel,Intel Core i5,Intel 12th Generation,10,16,3.7,125
+Intel Core i5 13400,Intel,Intel Core i5,Intel 13th Generation,10,16,2.5,65
+Intel Core i5 13400F,Intel,Intel Core i5,Intel 13th Generation,10,16,2.5,65
+Intel Core i5 13500,Intel,Intel Core i5,Intel 13th Generation,14,20,2.5,65
+Intel Core i5 13600K,Intel,Intel Core i5,Intel 13th Generation,14,20,3.5,125
+Intel Core i5 13600KF,Intel,Intel Core i5,Intel 13th Generation,14,20,3.5,125
+Intel Core i5 14400,Intel,Intel Core i5,Intel 14th Generation,10,16,2.5,65
+Intel Core i5 14400F,Intel,Intel Core i5,Intel 14th Generation,10,16,2.5,65
+Intel Core i5 14500,Intel,Intel Core i5,Intel 14th Generation,14,20,2.6,65
+Intel Core i5 14600K,Intel,Intel Core i5,Intel 14th Generation,14,20,3.5,125
+Intel Core i5 14600KF,Intel,Intel Core i5,Intel 14th Generation,14,20,3.5,125
+Intel Core i5 9400,Intel,Intel Core i5,Intel 9th Generation,6,6,2.9,65
+Intel Core i5 9600K,Intel,Intel Core i5,Intel 9th Generation,6,6,3.7,95
+Intel Core i5 9600KF,Intel,Intel Core i5,Intel 9th Generation,6,6,3.7,95
+Intel Core i7 10700,Intel,Intel Core i7,Intel 10th Generation,8,16,2.9,65
+Intel Core i7 10700F,Intel,Intel Core i7,Intel 10th Generation,8,16,2.9,65
+Intel Core i7 10700K,Intel,Intel Core i7,Intel 10th Generation,8,16,3.8,125
+Intel Core i7 10700KF,Intel,Intel Core i7,Intel 10th Generation,8,16,3.8,125
+Intel Core i7 11700,Intel,Intel Core i7,Intel 11th Generation,8,16,2.5,65
+Intel Core i7 11700F,Intel,Intel Core i7,Intel 11th Generation,8,16,2.5,65
+Intel Core i7 11700K,Intel,Intel Core i7,Intel 11th Generation,8,16,3.6,125
+Intel Core i7 12700,Intel,Intel Core i7,Intel 12th Generation,12,20,2.1,65
+Intel Core i7 12700F,Intel,Intel Core i7,Intel 12th Generation,12,20,2.1,65
+Intel Core i7 12700K,Intel,Intel Core i7,Intel 12th Generation,12,20,3.6,125
+Intel Core i7 12700KF,Intel,Intel Core i7,Intel 12th Generation,12,20,3.6,125
+Intel Core i7 13700,Intel,Intel Core i7,Intel 13th Generation,16,24,2.1,65
+Intel Core i7 13700F,Intel,Intel Core i7,Intel 13th Generation,16,24,2.1,65
+Intel Core i7 13700K,Intel,Intel Core i7,Intel 13th Generation,16,24,3.4,125
+Intel Core i7 13700KF,Intel,Intel Core i7,Intel 13th Generation,16,24,3.4,125
+Intel Core i7 14700,Intel,Intel Core i7,Intel 14th Generation,20,28,2.1,65
+Intel Core i7 14700F,Intel,Intel Core i7,Intel 14th Generation,20,28,2.1,65
+Intel Core i7 14700K,Intel,Intel Core i7,Intel 14th Generation,20,28,3.4,125
+Intel Core i7 14700KF,Intel,Intel Core i7,Intel 14th Generation,20,28,3.4,125
+Intel Core i7 9700,Intel,Intel Core i7,Intel 9th Generation,8,8,3.0,65
+Intel Core i7 9700F,Intel,Intel Core i7,Intel 9th Generation,8,8,3.0,65
+Intel Core i9 10850K,Intel,Intel Core i9,Intel 10th Generation,10,20,3.6,125
+Intel Core i9 10900K,Intel,Intel Core i9,Intel 10th Generation,10,20,3.7,125
+Intel Core i9 10900KF,Intel,Intel Core i9,Intel 10th Generation,10,20,3.7,125
+Intel Core i9 10900X,Intel,Intel Core i9,Intel 10th Generation,10,20,3.7,165
+Intel Core i9 10980XE,Intel,Intel Core i9,Intel 10th Generation,18,36,3.0,165
+Intel Core i9 11900,Intel,Intel Core i9,Intel 11th Generation,8,16,2.5,65
+Intel Core i9 11900F,Intel,Intel Core i9,Intel 11th Generation,8,16,2.5,65
+Intel Core i9 11900K,Intel,Intel Core i9,Intel 11th Generation,8,16,3.5,125
+Intel Core i9 11900KF,Intel,Intel Core i9,Intel 11th Generation,8,16,3.5,125
+Intel Core i9 12900F,Intel,Intel Core i9,Intel 12th Generation,16,24,2.4,65
+Intel Core i9 12900K,Intel,Intel Core i9,Intel 12th Generation,16,24,3.2,125
+Intel Core i9 12900KF,Intel,Intel Core i9,Intel 12th Generation,16,24,3.2,125
+Intel Core i9 12900KS,Intel,Intel Core i9,Intel 12th Generation,16,24,3.4,150
+Intel Core i9 13900,Intel,Intel Core i9,Intel 13th Generation,24,32,2.0,65
+Intel Core i9 13900F,Intel,Intel Core i9,Intel 13th Generation,24,32,2.0,65
+Intel Core i9 13900K,Intel,Intel Core i9,Intel 13th Generation,24,32,3.0,125
+Intel Core i9 13900KF,Intel,Intel Core i9,Intel 13th Generation,24,32,3.0,125
+Intel Core i9 13900KS,Intel,Intel Core i9,Intel 13th Generation,24,32,3.2,150
+Intel Core i9 14900,Intel,Intel Core i9,Intel 14th Generation,24,32,2.0,65
+Intel Core i9 14900K,Intel,Intel Core i9,Intel 14th Generation,24,32,3.2,125
+Intel Core i9 14900KF,Intel,Intel Core i9,Intel 14th Generation,24,32,3.2,125
+Intel Core i9 14900KS,Intel,Intel Core i9,Intel 14th Generation,24,32,3.2,150
+Intel Core i9 9900K,Intel,Intel Core i9,Intel 9th Generation,8,16,3.6,95
+Intel Pentium Gold G5420,Intel,Others,Others,2,4,3.8,54
+Intel Pentium Gold G6400,Intel,Others,Others,2,4,4.0,58
+Intel Pentium Gold G6405,Intel,Others,Others,2,4,4.1,58

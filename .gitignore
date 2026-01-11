@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.class
+.venv/
+venv/
+
+# Scrapy & Logs
+.scrapy/
+*.log
+
+# Environment Variables (CRITICAL: keeps your DB credentials safe)
+.env
+
+# Data Files
+# We ignore the raw JSON outputs because they are large and change constantly.
+# We keep standard_dict.txt and the CSV if they are needed for the scripts to run.
+cpu_price_tracker/data/*.json
+cpu_price_tracker/data/standard_dict.txt
+!cpu_price_tracker/data/cpu_data.csv
+
+# OS files
+.DS_Store
