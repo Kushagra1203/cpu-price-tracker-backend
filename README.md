@@ -114,7 +114,3 @@ CREATE TABLE price_snapshots (
 - Issues & support: open issues in this repository for backend-specific problems.
 
 ---
-
-This README focuses on documenting the backend's responsibilities, structure, and operational guidance. If you want, I can also:
-- Add concrete example code snippets for scrapers or DB interactions.
-- Create a PR instead of committing directly.
