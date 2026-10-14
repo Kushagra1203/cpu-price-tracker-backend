@@ -81,6 +81,16 @@ AMD Ryzen Threadripper Pro 9965WX,AMD,Threadripper,AMD Threadripper 9000,24,48,4
 AMD Ryzen Threadripper Pro 9975WX,AMD,Threadripper,AMD Threadripper 9000,32,64,3.9,350
 AMD Ryzen Threadripper Pro 9985WX,AMD,Threadripper,AMD Threadripper 9000,64,128,3.1,350
 AMD Ryzen Threadripper Pro 9995WX,AMD,Threadripper,AMD Threadripper 9000,96,192,2.6,350
+AMD Ryzen 5 7500F,AMD,Ryzen 5,AMD 7th Generation,6,12,3.7,65
+AMD Ryzen 5 7500X3D,AMD,Ryzen 5,AMD 7th Generation,6,12,4.2,120
+AMD Ryzen 7 7700X3D,AMD,Ryzen 7,AMD 7th Generation,8,16,4.2,120
+AMD Ryzen 7 9850X3D,AMD,Ryzen 7,AMD 9th Generation,8,16,4.7,120
+AMD Ryzen 9 9950X3D2,AMD,Ryzen 9,AMD 9th Generation,16,32,4.3,200
+Intel Core Ultra 5 235,Intel,Intel Core Ultra 5,Intel Ultra Generation,14,14,3.4,65
+Intel Core Ultra 5 250K,Intel,Intel Core Ultra 5,Intel Ultra Generation,18,18,4.2,125
+Intel Core Ultra 5 250KF,Intel,Intel Core Ultra 5,Intel Ultra Generation,18,18,4.2,125
+Intel Core Ultra 7 270K,Intel,Intel Core Ultra 7,Intel Ultra Generation,24,24,3.7,125
+Intel Core i9 14900F,Intel,Intel Core i9,Intel 14th Generation,24,32,2.0,65
 Intel Core Ultra 5 225,Intel,Intel Core Ultra 5,Intel Ultra Generation,10,12,3.0,45
 Intel Core Ultra 5 225F,Intel,Intel Core Ultra 5,Intel Ultra Generation,10,12,3.0,45
 Intel Core Ultra 5 245K,Intel,Intel Core Ultra 5,Intel Ultra Generation,14,18,3.6,125
