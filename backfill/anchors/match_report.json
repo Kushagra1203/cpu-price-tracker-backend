@@ -1,0 +1,461 @@
+{
+  "matches": {
+    "AMD Athlon 3000G": [
+      "a451b7e8fb627a7b0ba299937097f142",
+      "edfb12be1f52f874da712ce9fe8689ad"
+    ],
+    "AMD Ryzen 3 3200G": [
+      "7a742f8600b1d42f982a689a5b069ccc",
+      "ac28e64ddbbd840448ab267b6531158c"
+    ],
+    "AMD Ryzen 3 4100": [
+      "b1fad1cb496818700b2c7b50f7aeeb82"
+    ],
+    "AMD Ryzen 5 3400G": [
+      "2990a4c867a40c4b48489e296bccf1cc"
+    ],
+    "AMD Ryzen 5 3500": [
+      "a14f7ee654d138ee9d520e5fd7b541d6"
+    ],
+    "AMD Ryzen 5 3600": [
+      "574838b7e7e81f552867a9ca10bd3378"
+    ],
+    "AMD Ryzen 5 5500": [
+      "9cd6ddf449a961056b622afd7223c859"
+    ],
+    "AMD Ryzen 5 5500GT": [
+      "0487f31c5061f8f7ebf408d4b5d7bc60"
+    ],
+    "AMD Ryzen 5 5600": [
+      "12b7f85d5c224c20a978d63329350201"
+    ],
+    "AMD Ryzen 5 5600G": [
+      "db057152dc17593e8c4582cbe4995537"
+    ],
+    "AMD Ryzen 5 5600GT": [
+      "736e3b9cd0edb6d8a460dde0f8cfee3a"
+    ],
+    "AMD Ryzen 5 5600X": [
+      "935ab1ad74b916438c8a298c7d558221"
+    ],
+    "AMD Ryzen 5 7600": [
+      "3746a9dcc20314ac958396bdb9187b91"
+    ],
+    "AMD Ryzen 5 7600X": [
+      "84870a3207bcc79d28b32a01082f8ca0"
+    ],
+    "AMD Ryzen 5 8500G": [
+      "9eb93c4b95791878eab96cb0782453f0"
+    ],
+    "AMD Ryzen 5 8600G": [
+      "cea29ddf9c6249fba810bd58225772f9"
+    ],
+    "AMD Ryzen 5 9600X": [
+      "6acb6d58a362d238b72d88cb1b24cb86",
+      "11e18f848a189fc548512e7522978719"
+    ],
+    "AMD Ryzen 7 3800XT": [
+      "5ce54a46670c02c1b1c83f7ecb4c19a8"
+    ],
+    "AMD Ryzen 7 5700G": [
+      "d5b58df3153634c998eb5b7d4e23738a"
+    ],
+    "AMD Ryzen 7 5700X": [
+      "9c042b8dce54e31486979542938b8a66",
+      "a479636ab461c42dce105f1bfb24aa55"
+    ],
+    "AMD Ryzen 7 5800X3D": [
+      "17a9c62422c36814b96ad1020739e3a0",
+      "1e080302dc1a1c171c522fa70c0acca3"
+    ],
+    "AMD Ryzen 7 7700": [
+      "366d0375711ba551501a6f55923235c2"
+    ],
+    "AMD Ryzen 7 7700X": [
+      "cab35e0b68f66934c4c5387e72282c4d",
+      "f363b43dcb28bff3b2bb2866e36ba53f"
+    ],
+    "AMD Ryzen 7 7800X3D": [
+      "6682af2a485611e969573d48aaa0f168",
+      "c66221ec0b40e24bad8f18c7de8cc4b6"
+    ],
+    "AMD Ryzen 7 8700F": [
+      "c46af984223f745e95187684d337660b"
+    ],
+    "AMD Ryzen 7 8700G": [
+      "29b127a2a74f8addb165ebd7966e20ae"
+    ],
+    "AMD Ryzen 7 9700X": [
+      "47962da4755535179e0f1c713fb1998f",
+      "643d111abc91227b357829d2ccca4e49"
+    ],
+    "AMD Ryzen 7 9800X3D": [
+      "5cea6be16a674532a506524222b4e57a",
+      "609fd52509e64627d066e54e6b4e7eb2"
+    ],
+    "AMD Ryzen 9 3900XT": [
+      "af38fdee6af3902c9c89838a51049ceb"
+    ],
+    "AMD Ryzen 9 7900X": [
+      "7ebd1a9da29fed4b92a48ea3c86aa01c"
+    ],
+    "AMD Ryzen 9 7950X3D": [
+      "9437f21855d1d4b71dff97478c96c036"
+    ],
+    "AMD Ryzen 9 9900X": [
+      "b3ee4a6a7504ab59e06587efe2af432b",
+      "d9ec71afdf2b3a2c3a56808e8ee7b76d"
+    ],
+    "AMD Ryzen 9 9950X": [
+      "6716b8f73a84035100b0c6e83ac9b1c5",
+      "230bb5da6072a66f56dfd918369ef7ee",
+      "adecb6e639e89cc27a082e29f29c3863"
+    ],
+    "AMD Ryzen 9 9950X3D": [
+      "eda22c364c7f873f71450993c2ff5860"
+    ],
+    "AMD Ryzen Threadripper 2920X": [
+      "9ca6c8ba70c9ff6ed1bbd3bea8217da0"
+    ],
+    "AMD Ryzen Threadripper 7960X": [
+      "a6ccdca51e8e235396e97904a88b8508"
+    ],
+    "AMD Ryzen Threadripper 7970X": [
+      "62ed5d4b83fdaa9f9e458f114d59a5a5"
+    ],
+    "AMD Ryzen Threadripper 7980X": [
+      "9c94a2fab5f3bc0fd8d61c32596a1ef8"
+    ],
+    "AMD Ryzen Threadripper 9960X": [
+      "b568d530b4aa1716eeac2fcabf14e0a8",
+      "82f4041362493bb933af12811c818629"
+    ],
+    "AMD Ryzen Threadripper 9970X": [
+      "016a3b1189dc42c9d146e4b60e05bbb9"
+    ],
+    "AMD Ryzen Threadripper 9980X": [
+      "3ad4556fd488d20d4a8d429313ddc27a",
+      "cd7a7cec706c27a1c268f05405e6777c"
+    ],
+    "AMD Ryzen Threadripper Pro 5955WX": [
+      "c213990b2347cbce53c896e8f0cbab5f"
+    ],
+    "AMD Ryzen Threadripper Pro 5965WX": [
+      "9ca6c8ba70c9ff6ed1bbd3bea8217da0"
+    ],
+    "AMD Ryzen Threadripper Pro 5975WX": [
+      "d2b48c50131d27401bee8876de8f8a8e",
+      "73f4ac46d657c48cb58d3a610b236efc"
+    ],
+    "AMD Ryzen Threadripper Pro 5995WX": [
+      "4fc4448cccf42b351e09ab6ceef053ca",
+      "bd20fb3e5fb538ca0ea2fb880b698dab"
+    ],
+    "AMD Ryzen Threadripper Pro 7965WX": [
+      "a6a307887ed75ef60eeba6b0f1443d70"
+    ],
+    "AMD Ryzen Threadripper Pro 7975WX": [
+      "581b811e0cfe62798ed4e9df7b92ebaa"
+    ],
+    "AMD Ryzen Threadripper Pro 7985WX": [
+      "a3584e140ae2a3f6edaa6e49c4f43d0d"
+    ],
+    "AMD Ryzen Threadripper Pro 7995WX": [
+      "fb5511cbea438ed57d2c2354fbdbcf83"
+    ],
+    "AMD Ryzen Threadripper Pro 9955WX": [
+      "4b620d90a08e32b5954607bd988f33c2",
+      "9e858d694a54a7f51266c3869da2141a"
+    ],
+    "AMD Ryzen Threadripper Pro 9965WX": [
+      "46be89bd675d2baa4f221f88de856fe0",
+      "0f50f3d00377c126c0b67385380ece6a"
+    ],
+    "AMD Ryzen Threadripper Pro 9975WX": [
+      "baa1d17c60f10aecab548cd4400dfe0d"
+    ],
+    "AMD Ryzen Threadripper Pro 9985WX": [
+      "5dda1086d1bf1799ac9413dec8ab59c5",
+      "543d7ab467d7fff2080145d27b746d60"
+    ],
+    "AMD Ryzen Threadripper Pro 9995WX": [
+      "8ab25e3fc38adcc01682b80bd9bc8e61"
+    ],
+    "AMD Ryzen 5 7500F": [
+      "189c16995de58bb41c42aa84d3f11f93"
+    ],
+    "AMD Ryzen 5 7500X3D": [
+      "2c04696e23dbc68c608f293a879cf208"
+    ],
+    "AMD Ryzen 7 7700X3D": [
+      "4d39032898520e0be4d80e4f0d375f25"
+    ],
+    "AMD Ryzen 7 9850X3D": [
+      "d4cbddec1e102f64ade59baac44f93c1"
+    ],
+    "AMD Ryzen 9 9950X3D2": [
+      "bb05c3b1299b992b22b66380e763dd3a",
+      "c2cb6bbf5b162f2fc39d9f61e88b3397"
+    ],
+    "Intel Core Ultra 5 235": [
+      "a11a0120991f351821305e6cafd83b6d"
+    ],
+    "Intel Core Ultra 5 250K": [
+      "134807d14102fa553a734b2572e00ec0"
+    ],
+    "Intel Core Ultra 5 250KF": [
+      "6d45081d10fbe50af1ca84bf48071833"
+    ],
+    "Intel Core Ultra 7 270K": [
+      "15a9727747e5544b50aa550133e4893d"
+    ],
+    "Intel Core i9 14900F": [
+      "9a718aa1876c64d24699904a09b75542"
+    ],
+    "Intel Core Ultra 5 225": [
+      "fed16885ad14a6fc1b946304d5a537e0"
+    ],
+    "Intel Core Ultra 5 225F": [
+      "d6d6cf5dcd80e3f9fe7f6b034e487446"
+    ],
+    "Intel Core Ultra 5 245K": [
+      "a11a0120991f351821305e6cafd83b6d",
+      "8d3439000f3a07ccfefff0534c1e82c2"
+    ],
+    "Intel Core Ultra 5 245KF": [
+      "bc262a590a3062e0350b16a32af8cd0c"
+    ],
+    "Intel Core Ultra 7 265K": [
+      "c72fdec978e0940f8b3f4d7c96f08526"
+    ],
+    "Intel Core Ultra 7 265KF": [
+      "d7c31afcb434d47ba1e91b24549f578c"
+    ],
+    "Intel Core Ultra 9 285K": [
+      "f0b67e4da0cf31bf26504077e13abd3a"
+    ],
+    "Intel Core i3 10100F": [
+      "e036af40c5e4ce7b65d1105c767b852d",
+      "ff2aeda9f9d5ea1e5616806e28883653"
+    ],
+    "Intel Core i3 10105": [
+      "66f0b4d9e87653671be952d086524849"
+    ],
+    "Intel Core i3 10105F": [
+      "f6592a65534eb300bd89d032346c77c9"
+    ],
+    "Intel Core i3 12100": [
+      "6b536611453c93993786e20562143b2d"
+    ],
+    "Intel Core i3 12100F": [
+      "5ff8a0fec9097443280ecb56d399ab9e"
+    ],
+    "Intel Core i3 14100": [
+      "7997c55b0b28e4809f8b29c19eae7a83"
+    ],
+    "Intel Core i3 14100F": [
+      "c34ef346a9f3e3ddd2a295c4765ef9a5"
+    ],
+    "Intel Core i3 9350KF": [
+      "7fb54caa2b10eb0dbc6b1a39366835eb"
+    ],
+    "Intel Core i5 10400": [
+      "577fedecd94d772cf2d3626c3d0f5180"
+    ],
+    "Intel Core i5 10400F": [
+      "9f4cae6ec4d5f0348b7f92e394f0fac9"
+    ],
+    "Intel Core i5 11400": [
+      "1b21372e7ac27ba912bb585a398f9f90"
+    ],
+    "Intel Core i5 11400F": [
+      "5b1218bf8f776a0510da2a24132c0607"
+    ],
+    "Intel Core i5 11500": [
+      "1a8d3a8f858cf3a8a9acfca4764391f6"
+    ],
+    "Intel Core i5 12400": [
+      "cc32ab539e05946d46ce157a80a0b2af"
+    ],
+    "Intel Core i5 12400F": [
+      "4f03f1c57ecd0d974d2ea7099b8f12fe"
+    ],
+    "Intel Core i5 12500": [
+      "bb347c17b24cab1ba6c1f7fbd657a0ca"
+    ],
+    "Intel Core i5 13400": [
+      "6369c7dd0ca0f4be9e91388ec2522990"
+    ],
+    "Intel Core i5 13400F": [
+      "294ad34796cf63ee9b09b97c86547e92"
+    ],
+    "Intel Core i5 13600KF": [
+      "6f7c69c43d5c9053230e43594502a747"
+    ],
+    "Intel Core i5 14400": [
+      "8a14e7b61c588b169f68d74975bd1b17"
+    ],
+    "Intel Core i5 14400F": [
+      "d6a53295647d9cbcddd2115427c1e035"
+    ],
+    "Intel Core i5 14500": [
+      "2eafcb7d87572dfb3d5290bb8f4fe032"
+    ],
+    "Intel Core i5 14600K": [
+      "ed4eabfd7b39fda0edda3795b9c004d4"
+    ],
+    "Intel Core i5 14600KF": [
+      "f79f237713bf629a4e524842edfbb3ca"
+    ],
+    "Intel Core i5 9600K": [
+      "a4bebe9bcb819fda53dc4f51d9d82e60"
+    ],
+    "Intel Core i5 9600KF": [
+      "caab6b7ad45dc75913fd2b5bae987d30"
+    ],
+    "Intel Core i7 10700K": [
+      "4734e7a22be9e54487886c8ddeecb82c"
+    ],
+    "Intel Core i7 11700": [
+      "0d756ef8ebf93b12dda31551e34735b9"
+    ],
+    "Intel Core i7 11700K": [
+      "5161aca98609ed01705a74a9b6290813"
+    ],
+    "Intel Core i7 12700": [
+      "cbd4a74d8a67a38cd5a71e978237ec43"
+    ],
+    "Intel Core i7 12700F": [
+      "caacf05c5bb6cd78390d9d77735719f3"
+    ],
+    "Intel Core i7 12700K": [
+      "ad2e25c19e6e28b894b7ba5cc5f1a488"
+    ],
+    "Intel Core i7 13700F": [
+      "2b57f773c6f16569cf41cec4353c649f"
+    ],
+    "Intel Core i7 13700K": [
+      "485f4a28c1876c84d516dd27165372d3"
+    ],
+    "Intel Core i7 13700KF": [
+      "3e46d9da1733c606c0e118434edd740c"
+    ],
+    "Intel Core i7 14700": [
+      "97ae23381bde6bfeacb7d589f74c8680"
+    ],
+    "Intel Core i7 14700F": [
+      "611e928eda167b58ce09eba9ae40ed4b"
+    ],
+    "Intel Core i7 14700K": [
+      "6d3d7b9e47e8fdbbf1a5dba340879f72"
+    ],
+    "Intel Core i7 14700KF": [
+      "9d86a80212c2efb60642c61fb7a47c7b"
+    ],
+    "Intel Core i7 9700F": [
+      "ec6ff5ed4e6124c21468a7e9a68b258a"
+    ],
+    "Intel Core i9 10850K": [
+      "d8e4820cfe1c0cc313cea48b91a985fb"
+    ],
+    "Intel Core i9 10900KF": [
+      "880e402b49beb968ecb982e196fad8b7"
+    ],
+    "Intel Core i9 10980XE": [
+      "b8820d1e45d6bf61dcbdd06b10ea4de8"
+    ],
+    "Intel Core i9 11900": [
+      "c2d609abb55f57361e06e4ab4bb1014b"
+    ],
+    "Intel Core i9 12900F": [
+      "fadeb2639f11f6a506d96aa11510185a"
+    ],
+    "Intel Core i9 12900K": [
+      "491efe86010d1f72833c8c525fdec455"
+    ],
+    "Intel Core i9 13900": [
+      "7b92d6ea88c6415b436e219d97c6310d"
+    ],
+    "Intel Core i9 13900F": [
+      "eed9b2fd6eb95ab45081f99d5df6fa18"
+    ],
+    "Intel Core i9 13900KF": [
+      "24dd0491b5e19ec62e578cda362c0257"
+    ],
+    "Intel Core i9 14900": [
+      "b73635c5b162e9eba161b72525f2a3a7"
+    ],
+    "Intel Core i9 14900K": [
+      "1cfb7486ba3d9af88d307a7ff0eb3597"
+    ],
+    "Intel Core i9 14900KF": [
+      "bb4cc56e8d91a1ee5d0ecf70bee5bd9c"
+    ],
+    "Intel Core i9 14900KS": [
+      "cc6508b2f434a082ea0d8ceadddb1e84"
+    ],
+    "Intel Pentium Gold G6405": [
+      "426ab995014de0bcedaef5d3d21d2b89"
+    ]
+  },
+  "unmatched": [
+    "AMD Ryzen 3 2200G",
+    "AMD Ryzen 3 3100",
+    "AMD Ryzen 3 3300X",
+    "AMD Ryzen 3 4300G",
+    "AMD Ryzen 3 Pro 4350G",
+    "AMD Ryzen 5 1600X",
+    "AMD Ryzen 5 3500X",
+    "AMD Ryzen 5 3600XT",
+    "AMD Ryzen 5 4500",
+    "AMD Ryzen 5 4600G",
+    "AMD Ryzen 5 5600T",
+    "AMD Ryzen 5 5600XT",
+    "AMD Ryzen 5 7600X3D",
+    "AMD Ryzen 5 8400F",
+    "AMD Ryzen 5 Pro 4650G",
+    "AMD Ryzen 7 4700S",
+    "AMD Ryzen 7 5700",
+    "AMD Ryzen 7 5700X3D",
+    "AMD Ryzen 7 5800X",
+    "AMD Ryzen 7 5800XT",
+    "AMD Ryzen 7 Pro 4750G",
+    "AMD Ryzen 9 5900X",
+    "AMD Ryzen 9 5900XT",
+    "AMD Ryzen 9 5950X",
+    "AMD Ryzen 9 7900",
+    "AMD Ryzen 9 7900X3D",
+    "AMD Ryzen 9 7950X",
+    "AMD Ryzen 9 9900X3D",
+    "Intel Core i3 10100",
+    "Intel Core i3 13100",
+    "Intel Core i3 13100F",
+    "Intel Core i5 10500",
+    "Intel Core i5 10600",
+    "Intel Core i5 10600K",
+    "Intel Core i5 12600K",
+    "Intel Core i5 12600KF",
+    "Intel Core i5 13500",
+    "Intel Core i5 13600K",
+    "Intel Core i5 9400",
+    "Intel Core i7 10700",
+    "Intel Core i7 10700F",
+    "Intel Core i7 10700KF",
+    "Intel Core i7 11700F",
+    "Intel Core i7 12700KF",
+    "Intel Core i7 13700",
+    "Intel Core i7 9700",
+    "Intel Core i9 10900K",
+    "Intel Core i9 10900X",
+    "Intel Core i9 11900F",
+    "Intel Core i9 11900K",
+    "Intel Core i9 11900KF",
+    "Intel Core i9 12900KF",
+    "Intel Core i9 12900KS",
+    "Intel Core i9 13900K",
+    "Intel Core i9 13900KS",
+    "Intel Core i9 9900K",
+    "Intel Pentium Gold G5420",
+    "Intel Pentium Gold G6400"
+  ]
+}
