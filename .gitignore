@@ -11,6 +11,7 @@ venv/
 
 # Environment Variables
 .env
+certs/*.pem
 
 # Data Files
 cpu_price_tracker/data/*.json
@@ -19,3 +20,11 @@ cpu_price_tracker/data/standard_dict.txt
 
 # OS files
 .DS_Store
+
+# Backfill working files (raw scrape cache, session cookies) - not reproducible artifacts
+backfill/session.json
+backfill/reference/
+backfill/*.log
+
+# Asahi/macOS junk files
+._*
