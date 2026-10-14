@@ -5,9 +5,17 @@ class EzpzsolutionsSpider(scrapy.Spider):
     name = "ezpzsolutions"
     allowed_domains = ["www.ezpzsolutions.in"]
     start_urls = ["https://www.ezpzsolutions.in/processors/page/1/"]
+    custom_settings = {
+        'CLOSESPIDER_PAGECOUNT': 50,
+        'DOWNLOAD_DELAY': 3,
+    }
 
     def parse(self, response):
-        products=response.css("div.woocommerce-card__header")
+        products = response.css("div.woocommerce-card__header")
+        if not products:
+            self.logger.info("No products found, stopping")
+            return
+
         for product in products:
             name = product.css("div.woocommerce-loop-product__title a::text").get()
             link = product.css("div.woocommerce-loop-product__title a::attr(href)").get()
@@ -28,8 +36,10 @@ class EzpzsolutionsSpider(scrapy.Spider):
             item['vendor'] = 'Ezpz Solutions'
             yield item
 
-        current_page = response.meta.get("page", 1)
-        next_page = current_page + 1
-        next_page_url = f"https://www.ezpzsolutions.in/processors/page/{next_page}/"
-        yield scrapy.Request(next_page_url, callback=self.parse, meta={"page": next_page})
+        # Pagination with stop condition
+        next_page = response.css("a.next.page-numbers::attr(href)").get()
+        if next_page:
+            yield scrapy.Request(next_page, callback=self.parse)
+        else:
+            self.logger.info("No next page link found, stopping")
             

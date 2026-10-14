@@ -14,7 +14,8 @@ NEWSPIDER_MODULE = "cpu_price_tracker.spiders"
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = "cpu_price_tracker (+http://www.yourdomain.com)"
+# Use a browser UA: some vendors (e.g. mdcomputers) 403 the default Scrapy UA
+USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0"
 
 # ITEM_PIPELINES = {
 #     'cpu_price_tracker.pipelines.MySQLPipeline': 300,

@@ -7,11 +7,24 @@ class VishalperipheralsSpider(scrapy.Spider):
     start_urls = ["https://vishalperipherals.com/collections/processors?page=1"]
 
     custom_settings = {
-        'DOWNLOAD_DELAY': 2,
-        'USER_AGENT': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36',
+        'DOWNLOAD_DELAY': 5,
+        'USER_AGENT': 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0',
         'RETRY_HTTP_CODES': [429, 500, 502, 503, 504, 522, 524, 408],
-        'RETRY_TIMES': 5,
+        'RETRY_TIMES': 8,
+        'CLOSESPIDER_PAGECOUNT': 50,
     }
+
+    def start_requests(self):
+        for url in self.start_urls:
+            yield scrapy.Request(
+                url,
+                meta={
+                    "playwright": True,
+                    "playwright_page_methods": [
+                        ("wait_for_selector", "div.product-collection")
+                    ]
+                },
+            )
 
     def parse(self, response):
         products = response.css("div.product-collection")
@@ -47,7 +60,18 @@ class VishalperipheralsSpider(scrapy.Spider):
 
             yield item
 
-        current_page = response.meta.get("page", 1)
-        next_page = current_page + 1
-        next_page_url = f"https://vishalperipherals.com/collections/processors?page={next_page}"
-        yield scrapy.Request(next_page_url, callback=self.parse, meta={"page": next_page})
+        # Pagination with stop condition - check for next page link
+        next_page_link = response.css("a.pagination__next::attr(href), a.next::attr(href), link[rel='next']::attr(href)").get()
+        if next_page_link:
+            yield scrapy.Request(
+                next_page_link,
+                callback=self.parse,
+                meta={
+                    "playwright": True,
+                    "playwright_page_methods": [
+                        ("wait_for_selector", "div.product-collection")
+                    ]
+                }
+            )
+        else:
+            self.logger.info("No next page link found, stopping")

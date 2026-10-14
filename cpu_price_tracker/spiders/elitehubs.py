@@ -48,7 +48,11 @@ class ElitehubsSpider(scrapy.Spider):
             yield item
 
         # figure out the current &usf_take value
-        current_take = int(response.url.split("usf_take=")[-1])
+        try:
+            current_take = int(response.url.split("usf_take=")[-1])
+        except (ValueError, IndexError):
+            self.logger.info(f"Could not parse usf_take from {response.url}. Stopping.")
+            return
         next_take = current_take + 28
         next_url = (
             f"https://elitehubs.com/collections/processor?uff_pwm43v_stockStatus=1&usf_take={next_take}"
