@@ -6,7 +6,7 @@ both the **current snapshot** and an **append-only price history** in a cloud My
 database.
 
 Live frontend (auto-refreshed from this pipeline's data):
-[v0-cpu-price-tracker.vercel.app](https://cpu-price-tracker.vercel.app/)
+[cpu-price-tracker.vercel.app](https://cpu-price-tracker.vercel.app/)
 
 > **Why this exists:** no Indian website tracks CPU prices across multiple retailers
 > over time with per-spec filtering. This project is that tracker, built from scratch —
