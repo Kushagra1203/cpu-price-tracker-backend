@@ -1,8 +1,16 @@
 import os
 import subprocess
+import sys
 import json
+import logging
+import time
+import random
 import mysql.connector
 from dotenv import load_dotenv
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logger = logging.getLogger(__name__)
 
 # Load environment variables from .env
 load_dotenv()
@@ -28,21 +36,27 @@ spider_to_json = [
     ("theitdepot", "processors_itdepot.json"),
     ("mdcomputers", "processors_md.json"),
     ("pcstudio", "processors_pc.json"),
-    ("sclgaming", "processors_scl.json"),
-    ("shwetacomputers", "processors_shweta.json"),
     ("vedantcomputers", "processors_vedant.json"),
     ("vishalperipherals", "processors_vishal.json"),
     ("ezpzsolutions", "processors_ezpz.json"),
 ]
 
-for spider, json_file in spider_to_json:
+for i, (spider, json_file) in enumerate(spider_to_json):
     output_path = os.path.join(DATA_DIR, json_file)
-    print(f"Running spider {spider} --> output: {output_path}")
-    subprocess.run(
-        ["scrapy", "crawl", spider, "-O", output_path],
-        check=True,
-        cwd=PROJECT_ROOT,
-    )
+    logger.info(f"Running spider {spider} --> output: {output_path}")
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "scrapy", "crawl", spider, "-O", output_path],
+            check=True,
+            cwd=PROJECT_ROOT,
+        )
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Spider {spider} failed: {e}")
+    # Delay between spiders to avoid cross-site rate limiting
+    if i < len(spider_to_json) - 1:
+        delay = random.randint(30, 45)
+        logger.info(f"Waiting {delay}s before next spider...")
+        time.sleep(delay)
 
 # Step 2: Merge JSONs and remove duplicates by link
 merged = []
@@ -61,93 +75,134 @@ for _, json_file in spider_to_json:
 raw_json_path = os.path.join(DATA_DIR, "processors.json")
 with open(raw_json_path, "w", encoding="utf-8") as f:
     json.dump(merged, f, indent=2)
-print(f"Merged raw data saved to {raw_json_path}")
+logger.info(f"Merged raw data saved to {raw_json_path}")
 
 # Step 3: Normalize CPU names
-print("Running CPU name normalization...")
+logger.info("Running CPU name normalization...")
 subprocess.run(
-    ["python3", NORMALIZER],
+    [sys.executable, NORMALIZER],
     check=True,
     cwd=PROJECT_ROOT,
 )
-print("Normalization completed!")
+logger.info("Normalization completed!")
 
 # Step 4: Insert into MySQL (Aiven)
-print("Inserting standardized data into MySQL...")
-conn = mysql.connector.connect(
-    host=DB_HOST,
-    port=DB_PORT,
-    user=DB_USER,
-    password=DB_PASS,
-    database=DB_NAME,
-    ssl_ca=DB_SSL_CA
-)
-curr = conn.cursor()
+logger.info("Inserting standardized data into MySQL...")
+try:
+    with mysql.connector.connect(
+        host=DB_HOST,
+        port=DB_PORT,
+        user=DB_USER,
+        password=DB_PASS,
+        database=DB_NAME,
+        ssl_ca=DB_SSL_CA
+    ) as conn:
+        with conn.cursor() as curr:
+            # Ensure table exists with extended columns
+            curr.execute("""
+            CREATE TABLE IF NOT EXISTS cpu_prices (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255),
+                link VARCHAR(500),
+                price INT,
+                vendor VARCHAR(255),
+                brand VARCHAR(50),
+                generation VARCHAR(50),
+                series VARCHAR(50),
+                cores INT,
+                threads INT,
+                base_clock_ghz FLOAT,
+                tdp_watt INT,
+                UNIQUE KEY unique_vendor_link (vendor, link)
+            )
+            """)
+            conn.commit()
 
-# Ensure table exists with extended columns
-curr.execute("""
-CREATE TABLE IF NOT EXISTS cpu_prices (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255),
-    link VARCHAR(500),
-    price INT,
-    vendor VARCHAR(255),
-    brand VARCHAR(50),
-    generation VARCHAR(50),
-    series VARCHAR(50),
-    cores INT,
-    threads INT,
-    base_clock_ghz FLOAT,
-    tdp_watt INT,
-    UNIQUE KEY unique_vendor_link (vendor, link)
-)
-""")
-conn.commit()
+            # Append-only history table for price trends (real + synthetic rows)
+            curr.execute("""
+            CREATE TABLE IF NOT EXISTS price_history (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255),
+                vendor VARCHAR(255),
+                link VARCHAR(500),
+                price INT,
+                snapshot_date DATE NOT NULL,
+                is_synthetic TINYINT(1) NOT NULL DEFAULT 0,
+                UNIQUE KEY uniq_vendor_link_date (vendor, link, snapshot_date)
+            )
+            """)
+            conn.commit()
 
-# Load standardized JSON
-with open(STANDARDIZED_JSON, "r", encoding="utf-8") as f:
-    standardized_data = json.load(f)
+            # Load standardized JSON
+            with open(STANDARDIZED_JSON, "r", encoding="utf-8") as f:
+                standardized_data = json.load(f)
 
-for item in standardized_data:
-    price = item.get("price")
+            # Prepare data for batch insert
+            insert_data = []
+            history_data = []
+            for item in standardized_data:
+                price = item.get("price")
 
-    # Skip if price is missing or 0
-    if price is None or str(price).strip() == "" or int(price) == 0:
-        continue
+                # Skip if price is missing or 0
+                if price is None or str(price).strip() == "" or int(price) == 0:
+                    continue
 
-    try:
-        curr.execute("""
-            INSERT INTO cpu_prices
-            (name, link, price, vendor, brand, generation, series, cores, threads, base_clock_ghz, tdp_watt)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE
-                name = VALUES(name),
-                price = VALUES(price),
-                brand = VALUES(brand),
-                generation = VALUES(generation),
-                series = VALUES(series),
-                cores = VALUES(cores),
-                threads = VALUES(threads),
-                base_clock_ghz = VALUES(base_clock_ghz),
-                tdp_watt = VALUES(tdp_watt)
-        """, (
-            item.get("standard_name"),
-            item.get("link"),
-            int(price),
-            item.get("vendor"),
-            item.get("brand"),
-            item.get("generation"),
-            item.get("series"),
-            int(item.get("cores")) if item.get("cores") else None,
-            int(item.get("threads")) if item.get("threads") else None,
-            float(item.get("base_clock_ghz")) if item.get("base_clock_ghz") else None,
-            int(item.get("tdp_watt")) if item.get("tdp_watt") else None
-        ))
-    except mysql.connector.Error as err:
-        print(f"Error inserting {item.get('link')}: {err}")
-        conn.rollback()
+                insert_data.append((
+                    item.get("standard_name"),
+                    item.get("link"),
+                    int(price),
+                    item.get("vendor"),
+                    item.get("brand"),
+                    item.get("generation"),
+                    item.get("series"),
+                    int(item.get("cores")) if item.get("cores") else None,
+                    int(item.get("threads")) if item.get("threads") else None,
+                    float(item.get("base_clock_ghz")) if item.get("base_clock_ghz") else None,
+                    int(item.get("tdp_watt")) if item.get("tdp_watt") else None
+                ))
+                # (name, vendor, link, price) -> appended to price_history every run
+                history_data.append((
+                    item.get("standard_name"),
+                    item.get("vendor"),
+                    item.get("link"),
+                    int(price),
+                ))
 
-conn.commit()
-curr.close()
-conn.close()
-print("Data inserted successfully into MySQL!")
+            if insert_data:
+                try:
+                    curr.executemany("""
+                        INSERT INTO cpu_prices
+                        (name, link, price, vendor, brand, generation, series, cores, threads, base_clock_ghz, tdp_watt)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ON DUPLICATE KEY UPDATE
+                            name = VALUES(name),
+                            price = VALUES(price),
+                            brand = VALUES(brand),
+                            generation = VALUES(generation),
+                            series = VALUES(series),
+                            cores = VALUES(cores),
+                            threads = VALUES(threads),
+                            base_clock_ghz = VALUES(base_clock_ghz),
+                            tdp_watt = VALUES(tdp_watt)
+                    """, insert_data)
+                except mysql.connector.Error as err:
+                    logger.error(f"Error during batch insert: {err}")
+                    conn.rollback()
+
+            # Record today's snapshot in history (idempotent per day via unique key)
+            if history_data:
+                try:
+                    curr.executemany("""
+                        INSERT IGNORE INTO price_history
+                        (name, vendor, link, price, snapshot_date, is_synthetic)
+                        VALUES (%s, %s, %s, %s, CURDATE(), 0)
+                    """, history_data)
+                    logger.info(f"Price history snapshot recorded ({len(history_data)} rows).")
+                except mysql.connector.Error as err:
+                    logger.error(f"Error during price_history insert: {err}")
+                    conn.rollback()
+
+            conn.commit()
+    logger.info("Data inserted successfully into MySQL!")
+except mysql.connector.Error as err:
+    logger.error(f"Database connection error: {err}")
