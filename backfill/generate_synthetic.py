@@ -6,7 +6,7 @@ Method (documented for README):
   - For CPUs with reference anchors (118): per-vendor synthetic series =
     anchor_market_median(day) x per-listing offset, where the offset scales the
     market path to pass through the listing's REAL current price at the join
-    date. The pre-anchor window (back to ~6 months) is extended backwards with
+    date. The pre-anchor days at the very start of the window are extended backwards with
     generation-aware drift. No invented sale dips inside the anchored window
     (real dips are already in the anchor data).
   - For CPUs without anchors (~55): series generated backwards from the real
@@ -32,7 +32,7 @@ CPU_CSV = f"{DATA_DIR}/cpu_data.csv"
 SEED = 42
 rng = random.Random(SEED)
 
-WINDOW_START = date(2026, 4, 5)      # ~6 months back
+WINDOW_START = date(2026, 7, 17)     # anchor window start (3 months)
 WINDOW_END_EXCL = date.today()       # synthetic fills up to yesterday; today = real run
 ANCHOR_START = date(2026, 7, 17)     # first day of reference data
 

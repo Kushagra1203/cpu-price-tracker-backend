@@ -6,7 +6,7 @@ both the **current snapshot** and an **append-only price history** in a cloud My
 database.
 
 Live frontend (auto-refreshed from this pipeline's data):
-[v0-cpu-price-tracker.vercel.app](https://v0-cpu-price-tracker.vercel.app/)
+[v0-cpu-price-tracker.vercel.app](https://cpu-price-tracker.vercel.app/)
 
 > **Why this exists:** no Indian website tracks CPU prices across multiple retailers
 > over time with per-spec filtering. This project is that tracker, built from scratch —
@@ -64,7 +64,7 @@ always holds the latest observed price. The website reads this.
 ## Backfilled history (synthetic, clearly flagged)
 
 Real history only exists since Oct 2026, so the charts needed a backfill. Rather
-than random fake data, ~6 months of history was **fitted to observed market
+than random fake data, 3 months of history (the anchor window) **fitted to observed market
 anchors**:
 
 1. `backfill/pcpt_reference_scraper.py` scraped 90-day price-trend charts of a
