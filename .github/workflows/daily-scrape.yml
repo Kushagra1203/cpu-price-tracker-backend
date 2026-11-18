@@ -7,7 +7,11 @@ on:
 
 jobs:
   scrape:
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest. `ubuntu-latest` rolled forward to 26.04 and
+    # Playwright 1.54 refuses to install chromium there ("Playwright does not
+    # support chromium on ubuntu26.04-x64"), which failed this job every night
+    # from 2026-11-12 onward at the "Install dependencies" step.
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
       DB_HOST: ${{ secrets.DB_HOST }}
