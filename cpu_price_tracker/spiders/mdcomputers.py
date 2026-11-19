@@ -18,7 +18,11 @@ Three things this spider learned the hard way, all of them from the
 
 * The grid is server-rendered. Fetched without a browser at all, the page
   carries 20 product titles, 20 "product-wrapper" blocks inside the listing
-  grid and the banner. The browser only has to fetch the document.
+  grid and the banner. The browser's JavaScript is not what produces the
+  rows -- but it is still needed, because Cloudflare runs its bot-detection
+  script on every page it serves, and a page that blocks its own scripts
+  scores as a bot. See settings.py for the policy that was tried and
+  reverted on exactly this.
 * There is a 21st "product-wrapper" outside the grid -- a hidden template --
   plus two more that the page's own JavaScript injects. Selecting
   "div.product-wrapper" therefore picked up 23 tiles on a page that says 20.

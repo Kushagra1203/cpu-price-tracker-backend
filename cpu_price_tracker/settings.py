@@ -115,25 +115,28 @@ PLAYWRIGHT_LAUNCH_OPTIONS = {
     "args": ["--no-sandbox", "--disable-dev-shm-usage"],
 }
 
-# Let the browser send its own headers.
-#
-# The default copies Scrapy's request headers onto the navigation request,
-# which means a Chromium 139 was announcing itself as Firefox 128 with
-# Scrapy's narrow Accept and Accept-Encoding headers. A WAF comparing the
-# User-Agent against the TLS fingerprint sees a browser contradicting
-# itself, and "Accept-Encoding: gzip, deflate" is not something Chromium
-# sends. On 2026-11-19 MDComputers answered page 1 with 200 and then
-# answered page 2 with 403 in 0.2 s, from the same browser, in the same
-# session. See cpu_price_tracker/browser.py.
-PLAYWRIGHT_PROCESS_REQUEST_HEADERS = None
-
-# Stop the browser fetching assets no spider reads. One MDComputers listing
-# page otherwise pulls 90 requests for 20 products.
-PLAYWRIGHT_ABORT_REQUEST = "cpu_price_tracker.browser.abort_request"
-
 # Never wait forever. Without this, a page whose load event never fires
 # hangs the spider for the whole job.
 PLAYWRIGHT_DEFAULT_NAVIGATION_TIMEOUT = 30000
+
+# Two browser policies were tried on 2026-11-19 and both are recorded here so
+# they are not retried on a hunch.
+#
+# PLAYWRIGHT_PROCESS_REQUEST_HEADERS = None -- let the browser send its own
+# headers instead of Scrapy's (a Chromium 139 announcing itself as Firefox
+# 128). Reverted: it was changed in the same run as the policy below, so the
+# run could not say which of the two caused what, and the known-good state
+# is the default.
+#
+# PLAYWRIGHT_ABORT_REQUEST = "cpu_price_tracker.browser.abort_request" --
+# stop the browser fetching assets no spider reads. One MDComputers listing
+# page pulls 90 requests for 20 products, which reads as waste, and the
+# first attempt dropped everything but the document on that host. It took
+# MDComputers from 23 rows to 0: the 403 page Cloudflare serves carries
+# cdn-cgi/challenge-platform/scripts/jsd/main.js, its JavaScript bot
+# detection, and that spider had blocked every script on the host. Cloudflare
+# runs that script on every page it serves, blocked or not, and a page with
+# no JavaScript signals at all scores as a bot.
 
 # Other settings
 DOWNLOAD_DELAY = 3

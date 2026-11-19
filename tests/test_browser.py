@@ -1,81 +1,63 @@
+import asyncio
+import importlib.util
 import unittest
 
-from cpu_price_tracker.browser import abort_request
+from cpu_price_tracker.browser import wait_for_selector_or_none
+
+PLAYWRIGHT_AVAILABLE = importlib.util.find_spec("playwright") is not None
 
 
-class FakeRequest:
-    """The two attributes abort_request looks at."""
+class FakePage:
+    """Just enough of a Playwright page to exercise the helper."""
 
-    def __init__(self, url, resource_type):
-        self.url = url
-        self.resource_type = resource_type
+    def __init__(self, behaviour):
+        self.behaviour = behaviour
+        self.calls = []
+
+    async def wait_for_selector(self, selector, state=None, timeout=None):
+        self.calls.append((selector, state, timeout))
+        if self.behaviour == "timeout":
+            from playwright.async_api import TimeoutError
+
+            raise TimeoutError("Timeout 15000ms exceeded.")
+        return None
 
 
-class AbortRequestTests(unittest.TestCase):
-    def test_mdcomputers_keeps_only_the_document(self):
-        # The listing is server-rendered: one request is enough, and 90 was
-        # what page 1 used to cost.
-        self.assertFalse(
-            abort_request(
-                FakeRequest("https://mdcomputers.in/catalog/processor?page=1", "document")
-            )
-        )
-        self.assertTrue(
-            abort_request(
-                FakeRequest("https://mdcomputers.in/extension/x/style.css", "stylesheet")
-            )
-        )
-        self.assertTrue(
-            abort_request(
-                FakeRequest("https://mdcomputers.in/extension/x/app.js", "script")
-            )
-        )
-        self.assertTrue(
-            abort_request(FakeRequest("https://mdcomputers.in/image/a.png", "image"))
-        )
+@unittest.skipUnless(
+    PLAYWRIGHT_AVAILABLE,
+    "playwright is not installed; the helper imports it lazily",
+)
+class WaitForSelectorOrNoneTests(unittest.TestCase):
+    def test_returns_true_when_the_selector_appears(self):
+        page = FakePage("found")
 
-    def test_other_hosts_keep_their_scripts(self):
-        # Elitehubs renders its grid client-side, so its scripts must run.
-        self.assertFalse(
-            abort_request(
-                FakeRequest("https://elitehubs.com/collections/processor", "document")
-            )
-        )
-        self.assertFalse(
-            abort_request(
-                FakeRequest("https://elitehubs.com/cdn/shop/t/97/app.js", "script")
-            )
-        )
-        self.assertFalse(
-            abort_request(
-                FakeRequest("https://elitehubs.com/cdn/shop/t/97/style.css", "stylesheet")
-            )
-        )
+        async def run():
+            return await wait_for_selector_or_none(page, "div.product-wrapper")
 
-    def test_other_hosts_still_drop_images_and_fonts(self):
-        self.assertTrue(
-            abort_request(
-                FakeRequest("https://vishalperipherals.com/cdn/a.webp", "image")
-            )
-        )
-        self.assertTrue(
-            abort_request(
-                FakeRequest("https://vishalperipherals.com/cdn/a.woff2", "font")
-            )
-        )
-        self.assertTrue(
-            abort_request(
-                FakeRequest("https://vishalperipherals.com/cdn/a.mp4", "media")
-            )
-        )
+        self.assertTrue(asyncio.run(run()))
+        self.assertEqual(page.calls, [("div.product-wrapper", "attached", 15000)])
 
-    def test_a_host_that_merely_ends_with_the_same_name_is_not_caught(self):
-        # mdcomputers.in must match exactly, not by suffix.
-        self.assertFalse(
-            abort_request(
-                FakeRequest("https://not-mdcomputers.in/catalog/processor", "document")
-            )
-        )
+    def test_returns_false_instead_of_raising_on_timeout(self):
+        # This is the whole point of the helper: a raising wait makes
+        # scrapy-playwright discard the response, and with it the HTTP status
+        # that explains a block.
+        page = FakePage("timeout")
+
+        async def run():
+            return await wait_for_selector_or_none(page, "div.product-wrapper")
+
+        self.assertFalse(asyncio.run(run()))
+
+    def test_waits_for_attached_not_visible(self):
+        # A hidden template tile is attached but never visible, and waiting
+        # for visible times out on a page that loaded perfectly.
+        page = FakePage("found")
+
+        async def run():
+            return await wait_for_selector_or_none(page, "div.x")
+
+        asyncio.run(run())
+        self.assertEqual(page.calls[0][1], "attached")
 
 
 if __name__ == "__main__":

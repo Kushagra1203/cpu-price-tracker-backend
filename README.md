@@ -187,27 +187,44 @@ The 16:12 log says where the missing 39 went:
 ```
 
 Page 1 passed, page 2 was refused, from the same browser, in the same session.
-Two plausible causes, both now addressed:
 
-- **The browser was impersonating something it is not.** scrapy-playwright
-  copies Scrapy's headers onto the navigation request, so a Chromium 139 was
-  announcing itself as Firefox 128 with Scrapy's narrow `Accept-Encoding`.
-  `PLAYWRIGHT_PROCESS_REQUEST_HEADERS = None` lets the browser send its own.
-- **One listing page cost 90 requests** to the same host: 30 scripts, 20
-  stylesheets, 40 images, 5 fonts. The grid is server-rendered — fetched
-  without a browser at all, the page carries 20 product titles and the
-  banner — so `PLAYWRIGHT_ABORT_REQUEST` now drops every request that is not
-  the document on that host, and images and fonts everywhere else (Elitehubs
-  made 290 requests in one run and Vishal 808).
+Two fixes were built from that, and the next run (17:40) showed that one of
+them was wrong:
 
-`wait_for_selector` no longer raises, so a refusal is now logged as
-`HTTP 403` instead of masquerading as a 20-second timeout, and the page is
-asked again through a slow download slot rather than ending the crawl. The
-selector is also scoped to the listing grid, because the page carries a 21st
-`product-wrapper` outside it (a hidden template) and its JavaScript injects
-two more — that is how 23 tiles came off a page that says 20. Each page is
-now checked against the banner's own range (`Showing 21 to 40 of 62`), so a
-short page is named in the log rather than only noticed in the total.
+- **Blocking the assets was a mistake, and it cost the vendor.** One listing
+  page pulls 90 requests for 20 products — 30 scripts, 20 stylesheets, 40
+  images — which reads as waste, and the grid is server-rendered anyway, so
+  the first attempt dropped every request that was not the document on that
+  host. MDComputers went from 23 rows to 0. The 17:40 log shows why: the 403
+  body Cloudflare serves loads
+  `cdn-cgi/challenge-platform/scripts/jsd/main.js` — its JavaScript bot
+  detection — and that spider had blocked every script on the host.
+  Cloudflare runs that script on every page it serves, and a page with no
+  JavaScript signals at all scores as a bot. The policy is reverted; the
+  reasoning is kept in `settings.py` so it is not retried on a hunch.
+- **Letting the browser send its own headers** (`PLAYWRIGHT_PROCESS_REQUEST_
+  HEADERS = None`, a Chromium 139 announcing itself as Firefox 128) was
+  changed in the same run, so that run cannot say which of the two caused
+  what. It is reverted too, for the same reason: get back to the one
+  configuration that is known to pass page 1, and change one thing at a
+  time after that.
+
+What survives from that run, and what is still in place:
+
+- `wait_for_selector` does not raise, so a refusal is logged as `HTTP 403`
+  instead of masquerading as a 20-second timeout. That log line is what
+  diagnosed the whole thing.
+- A refused page is asked again through a slow download slot
+  (`DOWNLOAD_SLOTS` + `request.meta["download_slot"]`), instead of ending
+  the crawl at whatever page it stopped on. Scrapy has no per-request
+  download delay — `request.meta["download_delay"]` is not read by the
+  downloader — so the slot is the supported way to do it.
+- The selector is scoped to the listing grid. The page carries a 21st
+  `product-wrapper` outside it (a hidden template) and its JavaScript
+  injects two more — that is how 23 tiles came off a page that says 20.
+- Each page is checked against the banner's own range
+  (`Showing 21 to 40 of 62`), so a short page is named in the log rather
+  than only noticed in the total.
 
 **The IT Depot — 0 rows, then 53.** Not a parser problem: the five listing
 pages are ~1 MB of HTML each and the spider fetched them back to back with no
