@@ -27,6 +27,7 @@ import re
 import scrapy
 from scrapy_playwright.page import PageMethod
 
+from cpu_price_tracker.browser import wait_for_selector_or_none
 from cpu_price_tracker.items import CpuPriceTrackerItem
 
 PAGE_URL = "https://sclgaming.in/product-category/processor/page/{page}/"
@@ -70,12 +71,25 @@ class SclgamingSpider(scrapy.Spider):
             meta={
                 "playwright": True,
                 "playwright_page_methods": [
-                    PageMethod("wait_for_selector", "div.e-loop-item", timeout=20000)
+                    # Must not raise: a Cloudflare 403 body has no product
+                    # cards, and raising here throws the response away, so
+                    # the log says "20 second timeout" and the status that
+                    # explains the refusal is lost.
+                    PageMethod(wait_for_selector_or_none, "div.e-loop-item", 15000)
                 ],
             },
         )
 
     def parse(self, response, page):
+        if response.status != 200:
+            self.logger.warning(
+                "SCL Gaming page %d: HTTP %d from %s",
+                page,
+                response.status,
+                response.url,
+            )
+            return
+
         cards = response.css("div.e-loop-item.product_cat-processor")
         if not cards:
             self.logger.info("SCL Gaming: no cards on page %d, stopping", page)

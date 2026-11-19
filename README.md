@@ -169,6 +169,46 @@ Page.wait_for_selector: Timeout 20000ms exceeded.
 It now waits for `state="attached"`. The lesson is in the log line: a selector
 that *resolves* and a selector that *passes* are different questions.
 
+**MDComputers — 23 of 62, and the honest history of "63".** The 16:12 run got
+past the wait and pulled 23 rows, which is *fewer* than the 63 the
+2026-11-18 run produced — and the run before that, in this repo, got 0. The
+spider code was identical for the 63 → 0 transition, so what moved was the
+site: MD's Cloudflare started refusing plain Scrapy from the runner's IP
+sometime between 18 and 19 November, while still answering 200 from a
+residential connection. The old 63 was never a target either — the site's own
+banner says **62**, and 63 means one extra row slipped in. Chasing the
+previous run's number would have meant chasing the wrong one.
+
+The 16:12 log says where the missing 39 went:
+
+```
+16:13:16  Response: <200 https://mdcomputers.in/catalog/processor?page=1>
+16:13:21  Response: <403 https://mdcomputers.in/catalog/processor?page=2>
+```
+
+Page 1 passed, page 2 was refused, from the same browser, in the same session.
+Two plausible causes, both now addressed:
+
+- **The browser was impersonating something it is not.** scrapy-playwright
+  copies Scrapy's headers onto the navigation request, so a Chromium 139 was
+  announcing itself as Firefox 128 with Scrapy's narrow `Accept-Encoding`.
+  `PLAYWRIGHT_PROCESS_REQUEST_HEADERS = None` lets the browser send its own.
+- **One listing page cost 90 requests** to the same host: 30 scripts, 20
+  stylesheets, 40 images, 5 fonts. The grid is server-rendered — fetched
+  without a browser at all, the page carries 20 product titles and the
+  banner — so `PLAYWRIGHT_ABORT_REQUEST` now drops every request that is not
+  the document on that host, and images and fonts everywhere else (Elitehubs
+  made 290 requests in one run and Vishal 808).
+
+`wait_for_selector` no longer raises, so a refusal is now logged as
+`HTTP 403` instead of masquerading as a 20-second timeout, and the page is
+asked again through a slow download slot rather than ending the crawl. The
+selector is also scoped to the listing grid, because the page carries a 21st
+`product-wrapper` outside it (a hidden template) and its JavaScript injects
+two more — that is how 23 tiles came off a page that says 20. Each page is
+now checked against the banner's own range (`Showing 21 to 40 of 62`), so a
+short page is named in the log rather than only noticed in the total.
+
 **The IT Depot — 0 rows, then 53.** Not a parser problem: the five listing
 pages are ~1 MB of HTML each and the spider fetched them back to back with no
 delay, which tripped the site's LiteSpeed rate limiter (`response_status_count

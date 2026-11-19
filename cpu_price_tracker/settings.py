@@ -115,6 +115,26 @@ PLAYWRIGHT_LAUNCH_OPTIONS = {
     "args": ["--no-sandbox", "--disable-dev-shm-usage"],
 }
 
+# Let the browser send its own headers.
+#
+# The default copies Scrapy's request headers onto the navigation request,
+# which means a Chromium 139 was announcing itself as Firefox 128 with
+# Scrapy's narrow Accept and Accept-Encoding headers. A WAF comparing the
+# User-Agent against the TLS fingerprint sees a browser contradicting
+# itself, and "Accept-Encoding: gzip, deflate" is not something Chromium
+# sends. On 2026-11-19 MDComputers answered page 1 with 200 and then
+# answered page 2 with 403 in 0.2 s, from the same browser, in the same
+# session. See cpu_price_tracker/browser.py.
+PLAYWRIGHT_PROCESS_REQUEST_HEADERS = None
+
+# Stop the browser fetching assets no spider reads. One MDComputers listing
+# page otherwise pulls 90 requests for 20 products.
+PLAYWRIGHT_ABORT_REQUEST = "cpu_price_tracker.browser.abort_request"
+
+# Never wait forever. Without this, a page whose load event never fires
+# hangs the spider for the whole job.
+PLAYWRIGHT_DEFAULT_NAVIGATION_TIMEOUT = 30000
+
 # Other settings
 DOWNLOAD_DELAY = 3
 COOKIES_ENABLED = True
@@ -132,3 +152,15 @@ AUTOTHROTTLE_ENABLED = True
 AUTOTHROTTLE_START_DELAY = 5
 AUTOTHROTTLE_MAX_DELAY = 60
 AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
+
+# Scrapy has no per-request download delay -- request.meta["download_delay"]
+# is not read by the downloader -- but it does have per-slot settings, and a
+# request chooses its slot with request.meta["download_slot"]. MDComputers
+# gets a slow, strictly serial slot of its own: page 1 was answered 200 and
+# page 2 was refused with 403 in 0.2 s from the same browser session on
+# 2026-11-19, so the site's WAF does not like its request pattern, and a
+# refused page is asked again after the same 30 s rather than ending the
+# crawl.
+DOWNLOAD_SLOTS = {
+    "md-slow": {"concurrency": 1, "delay": 30},
+}
