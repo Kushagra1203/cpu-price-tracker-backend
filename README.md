@@ -114,19 +114,35 @@ DB_SSL_CA=certs/ca.pem
 |---|---|
 | MDComputers, PC Studio, The IT Depot, Ezpz, Vedant | ✅ daily |
 | Vishal Peripherals | ⚠️ intermittent (aggressive rate limiting; Playwright-based) |
-| Elitehubs | ⚠️ Cloudflare answers `429 local_rate_limited` before any HTML is served |
+| Elitehubs | ⚠️ Cloudflare throttles some IPs with `429 local_rate_limited` |
 
-### Why Elitehubs is flagged, not fixed
+### Why Elitehubs is flagged, not "fixed"
 
 The spider is already Playwright-based. A real browser does not help: the 429
 comes from Cloudflare's edge, so the rendered page is literally the 18-byte body
 `local_rate_limited`. The JSON endpoint (`/collections/processor/products.json`)
 returns the same 429, which rules out JavaScript rendering entirely.
 
-That is a rejection of the requesting IP, not a parser bug. It is also exactly
-the failure that used to be invisible: the spider returned zero items, exited
-cleanly, and the run logged `Data inserted successfully`. `validation.py` exists
-to make that case fail loudly instead.
+That is a rejection of the requesting IP, not a parser bug — and it is per-IP,
+not global. Verified by comparing two networks on the same day: the scheduled
+GitHub Actions runner collected **26 Elitehubs rows on 2026-11-18**, while the
+identical spider run from a home connection collected **0** and got
+
+```
+HTTP/2 429   retry-after: 60   server: cloudflare   x-dc: gcp-asia-southeast1
+body: local_rate_limited
+```
+
+Forensics that pointed at the IP rather than the code: the block survives a real
+browser (Playwright), survives a plain JSON endpoint, and disappears on a
+different network. No parser change can fix it, and there is nothing to fix while
+the scheduled runner keeps getting data.
+
+The dangerous part was never the 429 — it was that the spider returned zero
+items, exited cleanly, and the run still logged `Data inserted successfully`.
+`validation.py` exists to make that case fail loudly instead. If the runner ever
+starts being throttled too, the nightly job goes red rather than quietly
+publishing a short snapshot.
 
 ## Failure detection
 
