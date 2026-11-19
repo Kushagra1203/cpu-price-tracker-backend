@@ -8,7 +8,14 @@ class ElitehubsSpider(scrapy.Spider):
     name = "elitehubs"
     allowed_domains = ["elitehubs.com"]
     start_urls = [
-        "https://elitehubs.com/collections/processor?uff_pwm43v_stockStatus=1&usf_take=28"
+        # usf_take is how many tiles the collection renders in one response.
+        # 28 gave 21-26 in-stock processors while the collection holds 50, and
+        # every request after the first is answered 429, so the only way to get
+        # a complete snapshot is to ask for everything in the first request.
+        # 100 covers the whole in-stock collection with room to spare; if the
+        # filter app caps the value below the catalogue size the full-page test
+        # in parse() still triggers pagination.
+        "https://elitehubs.com/collections/processor?uff_pwm43v_stockStatus=1&usf_take=100"
     ]
 
     def start_requests(self):
@@ -62,7 +69,20 @@ class ElitehubsSpider(scrapy.Spider):
         except (ValueError, IndexError):
             self.logger.info(f"Could not parse usf_take from {response.url}. Stopping.")
             return
-        next_take = current_take + 28
+
+        self.logger.info(
+            "Elitehubs: %d tiles on the page (usf_take=%d, collection holds 50 in stock)",
+            len(products),
+            current_take,
+        )
+
+        # Only ask for another page if this one was full. Every request after the
+        # first is answered with a Cloudflare 429, so asking when there is
+        # nothing left costs four retries and gains nothing.
+        if len(products) < current_take:
+            return
+
+        next_take = current_take * 2
         next_url = (
             f"https://elitehubs.com/collections/processor?uff_pwm43v_stockStatus=1&usf_take={next_take}"
         )

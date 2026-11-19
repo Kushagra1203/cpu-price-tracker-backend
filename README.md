@@ -86,8 +86,9 @@ anchors**:
 master_script.py             daily orchestrator: spiders → merge → normalize → MySQL
 backfill/                    one-time history backfill (scripts + anchor data)
 cpu_price_tracker/
-  spiders/                   7 Scrapy spiders, one per vendor
+  spiders/                   8 Scrapy spiders, one per vendor
   validation.py              post-run vendor health check (see below)
+  listing.py                 parses a vendor's own "Showing X of N" total
   normalize_cpu_names.py     raw name cleaning + specs-dictionary matching
   cpu_data.csv               curated specs dictionary (185 CPUs: cores, threads, TDP…)
   settings.py                Scrapy config (Playwright handlers, delays, UA)
@@ -113,14 +114,75 @@ python -m unittest discover -s tests -t .
 
 ## Current status
 
-| Vendor | GitHub runner | Detail |
-|---|---|---|
-| MDComputers, The IT Depot, Ezpz, Vedant | ✅ | 63 / 53 / 43 / 41 items |
-| Elitehubs | ⚠️ 26 items | first page only; every pagination request answers 429 |
-| Vishal Peripherals | ⚠️ intermittent | 10 items when the grid renders before the response is captured |
-| PC Studio | ❌ 403 | Cloudflare refuses the runner's IP before any HTML is served |
+Every count below is the vendor's own, read off the page or the API — not a
+number typed in by hand. That distinction is the point: a hard-coded expected
+count rots the moment a vendor adds a CPU, while the site's banner cannot.
 
-### What the 2026-11-18 log actually showed
+| Vendor | Site's own count | Last run | Spider |
+|---|---|---|---|
+| MDComputers | 62 — `Showing 1 to 20 of 62 (4 Pages)` | 62 ✅ | page walk, stops at the stated page count |
+| The IT Depot | 53 — `Showing 1 to 12 of 53 (5 Pages)` | 0 ⚠️ | page walk, throttled |
+| Vedant Computers | 41 — `Showing 1 to 41 of 41 (1 Pages)` | 41 ✅ | one request, `limit=100` |
+| Ezpz Solutions | 43 | 43 ✅ | page walk |
+| Elitehubs | 50 in stock | 21 ⚠️ | one request, `usf_take=100` |
+| Vishal Peripherals | 46 — `46 of 141 products` | 10 ⚠️ | filtered search URL, 3 pages |
+| PC Studio | 67 — Store API `count: 67` | 0 ❌ | Store API JSON |
+| Computech Store | 101 — 6 pages of 20 | — | page walk, stops on repeated links |
+
+Each spider now logs `collected N of M`, so a short run names its own deficit
+in the log instead of leaving the total row count to be trusted.
+
+### Why each vendor is short, and what changed
+
+**The IT Depot — 0 rows, then 53.** Not a parser problem: the five listing
+pages are ~1 MB of HTML each and the spider fetched them back to back with no
+delay, which tripped the site's LiteSpeed rate limiter (`response_status_count
+/429: 4`). The same five pages returned 200 from an ordinary connection minutes
+later. It now runs at one request every 3s with AutoThrottle and stops at the
+page count the banner states, instead of guessing from an empty response.
+
+**Elitehubs — 21 of 50.** `usf_take` is how many tiles the collection renders
+in one response. It was 28, so the spider saw 21-26 of the 50 in-stock
+processors; asking for a second page earned a 307 followed by four 429s
+(`response_status_count/429: 4`). It now asks for 100 in the single request the
+site will serve, and only paginates if that page comes back full.
+
+**Vishal Peripherals — 10 of 46.** The spider was reading
+`/collections/processors?page=N`, which shows 20 tiles of which half are out of
+stock and exposes no working next-page link, so it stopped after one page. The
+spider now uses the store search with the availability filter applied
+server-side (`/a/search/processors?filter_availability[in_stock]=true`), walks
+its three pages, and reads the page's own `46 of 141 products` line as the
+target.
+
+**PC Studio — 0 rows, 403 on every attempt.** Cloudflare refuses the runner's
+IP before any document is served:
+
+```
+<GET https://www.pcstudio.in/product-category/processor/>
+Response: <403
+... cf.errors.css, cf-no-screenshot-error.png, challenge-platform/.../jsd/main.js
+```
+
+Playwright cannot help: the rejection arrives in under a second, ahead of the
+document. The storefront is WooCommerce, though, and WooCommerce publishes a
+public Store API — `/wp-json/wc/store/v1/products?category=113&per_page=100`
+returns the same catalogue as JSON (name, permalink, price, `is_in_stock`).
+Category 113 is the Processor term, confirmed via
+`/wp-json/wc/store/v1/products/categories?slug=processor` (`count: 67`). The
+spider now reads that route: one request, 67 rows, no browser. Whether the
+runner's IP is challenged on `/wp-json/` too is the open question — the spider
+logs the status and payload head rather than crashing, so the answer arrives in
+the next run log.
+
+**Computech Store — new, 101 products.** A custom Tailwind/htmx storefront, not
+WooCommerce (every `/wp-json/` route is 404), so it is scraped from the grid at
+20 per page. Pagination stops on a page that adds no new product links: asking
+for a page past the end re-serves the last page instead of returning nothing,
+so a "stop when the page looks short" rule would loop forever whenever the
+catalogue size is an exact multiple of 20.
+
+### What the 2026-11-18 log showed
 
 Per-spider totals from that run's `Stored json feed` lines:
 
@@ -130,41 +192,21 @@ pcstudio          0      vedant       41      vishal       10
 ezpzsolutions    43
 ```
 
-Six of seven vendors produced data. Only one is genuinely blocked, and the
-individual causes are different:
+Two bugs that run exposed, both now fixed:
 
-**PC Studio — blocked (not fixable in code).** One request, one response:
-
-```
-<GET https://www.pcstudio.in/product-category/processor/>
-Response: <403
-... cf.errors.css, cf-no-screenshot-error.png, challenge-platform/.../jsd/main.js
-```
-
-That is Cloudflare's error page, arriving in 0.6s. Playwright cannot help: the
-rejection happens before the document exists. Same spider from a home
-connection returns 67 items. A proxy would fix it; nothing in the parser will.
-
-**Elitehubs — first page only.** The first request (`usf_take=28`) returns 200
-and 26 items. The pagination request (`usf_take=56`) answers 307 → 429, then
-fails all three retries: `response_status_count/429: 4`. The ceiling is one page
-per run.
-
-**Vishal — a race, now fixed.** It yielded 10 items in this run and 0 the run
-before, with no error either time. Cause: `playwright_page_methods` was passed
-as *tuples*, and scrapy-playwright ignores tuples outright —
+**Every `wait_for_selector` in the project had never run.** They were passed as
+plain tuples, and scrapy-playwright silently discards those —
 
 ```
 WARNING: Ignoring ('wait_for_selector', 'div.product-collection'):
          expected PageMethod, got <class 'tuple'>
 ```
 
-So every `wait_for_selector` in the project had always been skipped, and whether
-a vendor's JS-rendered grid existed at capture time came down to luck. The same
-latent race explains the 26/53/63 counts being stable while Vishal's and PC
-Studio's were not.
+So whether a JavaScript-rendered grid existed at capture time came down to
+luck, which is why Vishal yielded 10 one night and 0 the next with no error
+either time.
 
-**The crash.** Elitehubs also yielded a non-product tile:
+**One Elitehubs tile had no title.**
 
 ```
 {'link': 'https://elitehubs.com/collections/processor?...usf_take=28',
@@ -173,8 +215,8 @@ Studio's were not.
 
 `Response.urljoin(None)` returns the base URL, so that tile became a row with no
 name and the collection page as its link. It then killed the normalizer and with
-it the whole night's insert. Both ends are now guarded: the spider skips tiles
-without a title, and the normalizer drops nameless rows instead of dying.
+it the whole night's insert. Both ends are guarded now: the spider skips
+untitled tiles, and the normalizer drops nameless rows instead of dying.
 
 ### Why a local run sees no Elitehubs
 
@@ -206,10 +248,12 @@ level, so `master_script.py` checks every vendor's row count after the insert:
   alone misses.
 * **Disappearance** (`EXPECTED_VENDORS`) — a spider that vanishes entirely is
   reported by name rather than as a silently shorter total. The list holds the
-  six vendors the runner can actually reach; PC Studio is deliberately excluded
-  because it is blocked there permanently (see *Current status*). It still gets
-  its own `pcstudio: 0 items` warning from the per-spider log line, so nothing
-  is hidden — only the build is not held hostage by a known, unfixable block.
+  seven vendors the runner must always produce. PC Studio is excluded while its
+  new Store API route is unproven from the runner: if the block extends to
+  `/wp-json/`, keeping it expected would fail the job every night for a cause no
+  code change can fix, which is how a useful alert turns into wallpaper. It is
+  added back the moment a run reports its 67 rows. Its per-spider
+  `pcstudio: 0 items` line still names it every night, so nothing is hidden.
 
 Failures exit non-zero, so the GitHub Actions run goes red and emails, instead of
 completing green with a vendor missing. The check runs *after* the commit, so the

@@ -44,6 +44,7 @@ spider_to_json = [
     ("vedantcomputers", "processors_vedant.json"),
     ("vishalperipherals", "processors_vishal.json"),
     ("ezpzsolutions", "processors_ezpz.json"),
+    ("computechstore", "processors_computech.json"),
 ]
 
 for i, (spider, json_file) in enumerate(spider_to_json):

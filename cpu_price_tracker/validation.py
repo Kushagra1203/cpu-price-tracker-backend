@@ -21,14 +21,16 @@ MIN_ROWS_PER_VENDOR = 3
 # A vendor must keep at least this share of its previous run's rows.
 MIN_FRACTION_OF_PREVIOUS = 0.6
 
-# Vendors expected to run, used to catch a spider that disappears entirely
-# rather than merely returning few rows.
-# Vendors the scheduled runner must see. PC Studio is deliberately absent: its
-# only two runs from the runner returned HTTP 403 from Cloudflare in well under
-# a second (a block on the runner's IP, not a parser problem), while the same
-# spider still returns 67 rows from a home connection. Leaving it here would
-# make the job fail every single night until a proxy is added, which trains you
-# to ignore the one check that catches real breakage.
+# Vendors the scheduled runner must see.
+#
+# PC Studio is deliberately absent for now: from the runner it must cross
+# Cloudflare, and until 2026-11-19 every attempt returned HTTP 403 in under a
+# second (an IP-level block, not a parser bug) while the same spider returned
+# 67 rows from a home connection. The spider now reads WooCommerce's public
+# Store API instead of the HTML page, which may not be challenged; it is added
+# back here once a runner run actually reports its 67 rows. Until then its
+# per-spider "0 items" line still names it every night, so nothing is hidden --
+# only the build is not held red for a cause no code change can fix.
 EXPECTED_VENDORS = [
     "Elitehubs",
     "The IT Depot",
@@ -36,6 +38,7 @@ EXPECTED_VENDORS = [
     "Vedant Computers",
     "Vishal Peripherals",
     "Ezpz Solutions",
+    "Computech Store",
 ]
 
 

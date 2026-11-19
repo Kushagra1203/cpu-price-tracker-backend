@@ -1,74 +1,80 @@
+"""Vedant Computers -- 41 processors, all on one page.
+
+?limit=100 makes OpenCart render the whole catalogue in a single response, so
+there is no pagination and no need for a browser: the product grid and the
+"Showing 1 to 41 of 41 (1 Pages)" banner are both in the server HTML. Dropping
+Playwright here removes a browser launch from every run.
+"""
+
 import scrapy
+
 from cpu_price_tracker.items import CpuPriceTrackerItem
+from cpu_price_tracker.listing import parse_showing_total
+
+LISTING_URL = "https://www.vedantcomputers.com/pc-components/processor?limit=100"
+
 
 class VedantcomputersSpider(scrapy.Spider):
     name = "vedantcomputers"
     allowed_domains = ["vedantcomputers.com"]
-    start_urls = ["https://www.vedantcomputers.com/pc-components/processor?limit=100"]
+
     custom_settings = {
-        'USER_AGENT': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-                    '(KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
-        'ROBOTSTXT_OBEY': False,
-        'DOWNLOAD_DELAY': 3,
-        'CONCURRENT_REQUESTS_PER_DOMAIN': 2,
-        'CLOSESPIDER_TIMEOUT': 300,
-        'DOWNLOAD_HANDLERS': {
-            "http": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
-            "https": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
-        },
-        'TWISTED_REACTOR': "twisted.internet.asyncioreactor.AsyncioSelectorReactor",
-        'COOKIES_ENABLED': True,
-        'RETRY_ENABLED': True,
-        'RETRY_TIMES': 3,
+        "DOWNLOAD_DELAY": 3,
+        "CONCURRENT_REQUESTS_PER_DOMAIN": 1,
+        "USER_AGENT": (
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+        ),
     }
-    
+
     def start_requests(self):
-        url="https://www.vedantcomputers.com/pc-components/processor?limit=100"
-        yield scrapy.Request(url, meta={'playwright': True, 'page': 1})
-    
+        yield scrapy.Request(LISTING_URL, callback=self.parse)
+
     def parse(self, response):
-        # Select only real product blocks, avoid carousels etc.
         products = response.css("div.product-thumb")
-        
+
         if not products:
-            self.logger.info("No products found, stopping")
+            self.logger.info("Vedant Computers: no products found, stopping")
             return
-        
+
+        expected_total, total_pages = parse_showing_total(response.text)
+
+        yielded = 0
         for product in products:
-            name = product.css('div.name a::text').get()
-            if name:
-                name = name.strip()
+            name = product.css("div.name a::text").get()
+            link = product.css("div.name a::attr(href)").get()
+            if not name or not link:
+                continue
 
-            link = product.css('div.name a::attr(href)').get()
-
-            price_text = product.css('span.price-new::text').get()
+            price_text = product.css("span.price-new::text").get()
             price = None
             if price_text:
-                cleaned_price = price_text.strip().replace(",", "").replace("₹", "").replace(".00", "")
+                cleaned = (
+                    price_text.strip()
+                    .replace(",", "")
+                    .replace("₹", "")
+                    .replace(".00", "")
+                )
                 try:
-                    price = int(cleaned_price)
+                    price = int(cleaned)
                 except ValueError:
                     price = None
-                    
+
             item = CpuPriceTrackerItem()
-            item['name'] = name
-            item['link'] = link
-            item['price'] = price
-            item['vendor'] = 'Vedant Computers'
+            item["name"] = name.strip()
+            item["link"] = response.urljoin(link)
+            item["price"] = price
+            item["vendor"] = "Vedant Computers"
+
+            yielded += 1
             yield item
 
-        # Check for pagination
-        current_page = response.meta.get('page', 1)
-        next_page = current_page + 1
-        next_url = f"https://www.vedantcomputers.com/pc-components/processor?limit=100&page={next_page}"
-        
-        # Try to find next page link in pagination
-        next_link = response.css("ul.pagination li a::attr(href)").re_first(rf'page={next_page}')
-        if not next_link:
-            # Try common next page selectors
-            next_link = response.css("a.next::attr(href), li.next a::attr(href), .pagination a[rel='next']::attr(href)").get()
-        
-        if next_link:
-            yield scrapy.Request(next_link, callback=self.parse, meta={'playwright': True, 'page': next_page})
-        else:
-            self.logger.info(f"No next page link found for page {next_page}, stopping")
+        expected = f" of {expected_total}" if expected_total else ""
+        pages = f", {total_pages} page(s)" if total_pages else ""
+        self.logger.info(
+            "Vedant Computers: %d tiles, %d items%s%s",
+            len(products),
+            yielded,
+            expected,
+            pages,
+        )

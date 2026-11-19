@@ -1,50 +1,111 @@
+"""PC Studio, read from its WooCommerce Store API instead of its HTML.
+
+The HTML category page is behind Cloudflare's bot management, which answers the
+GitHub runner with HTTP 403 in under a second -- before any document exists, so
+Playwright cannot get around it. The storefront is WooCommerce, and WooCommerce
+publishes a separate public route:
+
+    /wp-json/wc/store/v1/products?category=113&per_page=100
+
+which returns the same catalogue as JSON, with name, permalink, prices and
+is_in_stock. Category 113 is the "Processor" term (confirmed via
+/wp-json/wc/store/v1/products/categories?slug=processor, which reports
+count: 67).
+
+Verified from a working network: 67 products, all in stock, all with prices.
+One request returns the whole catalogue, so there is no pagination to follow.
+"""
+
+import json
+
 import scrapy
+
 from cpu_price_tracker.items import CpuPriceTrackerItem
+
+STORE_API = (
+    "https://www.pcstudio.in/wp-json/wc/store/v1/products"
+    "?category=113&per_page=100"
+)
+
 
 class PcstudioSpider(scrapy.Spider):
     name = "pcstudio"
     allowed_domains = ["www.pcstudio.in"]
-    start_urls = ["https://www.pcstudio.in/product-category/processor/"]
-    custom_settings = {
-        'CLOSESPIDER_PAGECOUNT': 50,
-        'DOWNLOAD_DELAY': 3,
-    }
-    
-    def start_requests(self):
-        for url in self.start_urls:
-            yield scrapy.Request(url, meta={'playwright': True})
-    
-    def parse(self, response):
-        products = response.css("ul.products li.product")
-        if not products:
-            self.logger.info("No products found, stopping")
-            return
-        
-        for product in products:
-            name = product.css("li.title h2 a span::attr(title)").get()
-            if not name:
-                name = product.css("li.title h2 a::text").get()
-            link = product.css("li.title a::attr(href)").get()
-            price_text = product.css("ins bdi::text").get()
 
+    custom_settings = {
+        "DOWNLOAD_DELAY": 3,
+        "CLOSESPIDER_PAGECOUNT": 5,
+        "USER_AGENT": (
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+        ),
+    }
+
+    def start_requests(self):
+        yield scrapy.Request(
+            STORE_API,
+            callback=self.parse,
+            headers={"Accept": "application/json"},
+        )
+
+    def parse(self, response):
+        try:
+            products = json.loads(response.text)
+        except ValueError:
+            # A Cloudflare challenge page is HTML, so this is where an IP-level
+            # block surfaces now. Say so plainly instead of raising.
+            self.logger.error(
+                "PC Studio: expected JSON, got HTTP %s (%d bytes): %r",
+                response.status,
+                len(response.body),
+                response.text[:160],
+            )
+            return
+
+        if not isinstance(products, list):
+            self.logger.error(
+                "PC Studio: unexpected payload type %s", type(products).__name__
+            )
+            return
+
+        in_stock = 0
+        yielded = 0
+
+        for product in products:
+            if not product.get("is_in_stock"):
+                continue
+            in_stock += 1
+
+            name = (product.get("name") or "").strip()
+            link = product.get("permalink")
+            if not name or not link:
+                continue
+
+            # prices.price is an integer string in the store's smallest unit,
+            # and currency_minor_unit says how many decimal places that is.
+            # This store reports 0, so "36380" is already ₹36,380.
             price = None
-            if price_text:
-                cleaned_price = price_text.strip().replace(",", "").replace("₹", "")
+            prices = product.get("prices") or {}
+            raw = prices.get("price")
+            if raw not in (None, ""):
                 try:
-                    price = int(cleaned_price)
-                except ValueError:
+                    minor_unit = int(prices.get("currency_minor_unit", 2))
+                    price = int(round(int(raw) / (10 ** minor_unit)))
+                except (TypeError, ValueError):
                     price = None
-            
+
             item = CpuPriceTrackerItem()
-            item['name'] = name
-            item['link'] = link
-            item['price'] = price
-            item['vendor'] = 'PC Studio'
+            item["name"] = name
+            item["link"] = link
+            item["price"] = price
+            item["vendor"] = "PC Studio"
+
+            yielded += 1
             yield item
-        
-        # Pagination - check for next page link
-        next_page = response.css("a.next.page-numbers::attr(href)").get()
-        if not next_page:
-            next_page = response.css("a.page-numbers.next::attr(href)").get()
-        if next_page:
-            yield scrapy.Request(next_page, callback=self.parse, meta={'playwright': True})
+
+        self.logger.info(
+            "PC Studio: %d products in the API, %d in stock, %d yielded",
+            len(products),
+            in_stock,
+            yielded,
+        )
