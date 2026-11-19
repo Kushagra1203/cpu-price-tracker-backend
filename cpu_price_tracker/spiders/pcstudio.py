@@ -1,19 +1,8 @@
-"""PC Studio, read from its WooCommerce Store API instead of its HTML.
+"""PC Studio -- the catalogue from its WooCommerce Store API.
 
-The HTML category page is behind Cloudflare's bot management, which answers the
-GitHub runner with HTTP 403 in under a second -- before any document exists, so
-Playwright cannot get around it. The storefront is WooCommerce, and WooCommerce
-publishes a separate public route:
-
-    /wp-json/wc/store/v1/products?category=113&per_page=100
-
-which returns the same catalogue as JSON, with name, permalink, prices and
-is_in_stock. Category 113 is the "Processor" term (confirmed via
-/wp-json/wc/store/v1/products/categories?slug=processor, which reports
-count: 67).
-
-Verified from a working network: 67 products, all in stock, all with prices.
-One request returns the whole catalogue, so there is no pagination to follow.
+The HTML page sits behind Cloudflare, which refuses the runner before any
+document is served. The storefront also publishes the same catalogue as JSON
+on /wp-json/wc/store/v1/products (category 113 is "Processor", 67 products).
 """
 
 import json
@@ -22,10 +11,7 @@ import scrapy
 
 from cpu_price_tracker.items import CpuPriceTrackerItem
 
-STORE_API = (
-    "https://www.pcstudio.in/wp-json/wc/store/v1/products"
-    "?category=113&per_page=100"
-)
+STORE_API = "https://www.pcstudio.in/wp-json/wc/store/v1/products?category=113&per_page=100"
 
 
 class PcstudioSpider(scrapy.Spider):
@@ -34,7 +20,6 @@ class PcstudioSpider(scrapy.Spider):
 
     custom_settings = {
         "DOWNLOAD_DELAY": 3,
-        "CLOSESPIDER_PAGECOUNT": 5,
         "USER_AGENT": (
             "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
             "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
@@ -52,29 +37,20 @@ class PcstudioSpider(scrapy.Spider):
         try:
             products = json.loads(response.text)
         except ValueError:
-            # A Cloudflare challenge page is HTML, so this is where an IP-level
-            # block surfaces now. Say so plainly instead of raising.
+            # A Cloudflare challenge page is HTML: say so instead of crashing.
             self.logger.error(
-                "PC Studio: expected JSON, got HTTP %s (%d bytes): %r",
-                response.status,
-                len(response.body),
-                response.text[:160],
+                "PC Studio: expected JSON, got HTTP %s: %r", response.status, response.text[:160]
             )
             return
 
         if not isinstance(products, list):
-            self.logger.error(
-                "PC Studio: unexpected payload type %s", type(products).__name__
-            )
+            self.logger.error("PC Studio: unexpected payload type %s", type(products).__name__)
             return
 
-        in_stock = 0
         yielded = 0
-
         for product in products:
             if not product.get("is_in_stock"):
                 continue
-            in_stock += 1
 
             name = (product.get("name") or "").strip()
             link = product.get("permalink")
@@ -83,7 +59,7 @@ class PcstudioSpider(scrapy.Spider):
 
             # prices.price is an integer string in the store's smallest unit,
             # and currency_minor_unit says how many decimal places that is.
-            # This store reports 0, so "36380" is already ₹36,380.
+            # This store reports 0, so "36380" is already Rs 36,380.
             price = None
             prices = product.get("prices") or {}
             raw = prices.get("price")
@@ -99,13 +75,10 @@ class PcstudioSpider(scrapy.Spider):
             item["link"] = link
             item["price"] = price
             item["vendor"] = "PC Studio"
-
             yielded += 1
             yield item
 
         self.logger.info(
-            "PC Studio: %d products in the API, %d in stock, %d yielded",
-            len(products),
-            in_stock,
-            yielded,
+            "PC Studio: %d products, %d in stock, %d yielded", len(products),
+            sum(1 for p in products if p.get("is_in_stock")), yielded,
         )

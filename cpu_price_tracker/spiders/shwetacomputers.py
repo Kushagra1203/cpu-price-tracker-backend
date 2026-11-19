@@ -1,29 +1,9 @@
-"""Shweta Computers -- read from Shopify's collection JSON, not the theme.
+"""Shweta Computers -- the collection from Shopify's products.json.
 
-The storefront is Shopify (its listing URLs carry Shopify's own filter
-parameters, ``filter.v.availability`` / ``filter.v.price.gte``), so the
-collection is also published as JSON:
-
-    /collections/processor/products.json?limit=250&page=N
-
-Each product there carries a title, a handle, and variants with a price and an
-``available`` flag. That flag is the same stock field the product page renders,
-so nothing depends on the availability query parameter -- which products.json
-ignores anyway.
-
-This replaces two failures in the previous spider:
-
-* it guessed between five different card selectors, which is how a theme change
-  silently produces zero rows;
-* it pinned ``filter.v.price.lte=69699`` into its URL. That is Rs 69,699, so
-  every processor above that price was invisible to it -- which is most of the
-  high-end catalogue.
-
-The site rate-limits aggressively (HTTP 429, body ``local_rate_limited``,
-``retry-after: 60``), on the JSON route as well as the HTML. That is a per-IP
-block, so whether it applies to the GitHub runner is only knowable from a run;
-this spider logs the status and payload head instead of raising, so the answer
-shows up in the log rather than as a crash.
+The theme's card markup changed once and the spider silently produced zero
+rows, and its URL pinned a Rs 69,699 price ceiling that hid the high-end
+catalogue. products.json carries title, handle, and variants with price and an
+available flag -- no selectors to guess.
 """
 
 import json
@@ -32,11 +12,7 @@ import scrapy
 
 from cpu_price_tracker.items import CpuPriceTrackerItem
 
-API_URL = (
-    "https://shwetacomputers.com/collections/processor/products.json"
-    "?limit=250&page={page}"
-)
-
+API_URL = "https://shwetacomputers.com/collections/processor/products.json?limit=250&page={page}"
 MAX_PAGES = 5
 
 
@@ -45,14 +21,9 @@ class ShwetacomputersSpider(scrapy.Spider):
     allowed_domains = ["shwetacomputers.com"]
 
     custom_settings = {
-        # Cloudflare answers this endpoint with 429 + `Retry-After: 60` once the
-        # runner's shared IP has spent its budget. Scrapy's retry is not
-        # Retry-After aware, and AutoThrottle paces by latency rather than by
-        # status code, so on 2026-11-19 the four attempts landed 6 s apart --
-        # all inside the same 60 s window -- and the spider gave up with 0 rows
-        # after producing 81 half an hour earlier. AutoThrottle off and a fixed
-        # 20 s delay stretch six attempts across ~2 minutes, which outlasts the
-        # window instead of losing to it.
+        # The site answers with 429 + Retry-After: 60 once an IP has spent its
+        # budget, and Scrapy's retry is not Retry-After aware -- so the attempts
+        # have to outlast the window: 20 s apart, six of them.
         "AUTOTHROTTLE_ENABLED": False,
         "DOWNLOAD_DELAY": 20,
         "RETRY_TIMES": 6,
@@ -63,18 +34,11 @@ class ShwetacomputersSpider(scrapy.Spider):
         ),
     }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.collected = 0
-
     def start_requests(self):
-        yield self.page_request(1)
-
-    def page_request(self, page):
-        return scrapy.Request(
-            API_URL.format(page=page),
+        yield scrapy.Request(
+            API_URL.format(page=1),
             callback=self.parse,
-            cb_kwargs={"page": page},
+            cb_kwargs={"page": 1},
             headers={"Accept": "application/json"},
         )
 
@@ -82,65 +46,51 @@ class ShwetacomputersSpider(scrapy.Spider):
         try:
             payload = json.loads(response.text)
         except ValueError:
+            # A Cloudflare challenge page is HTML: say so instead of crashing.
             self.logger.error(
-                "Shweta: expected JSON, got HTTP %s (%d bytes): %r",
-                response.status,
-                len(response.body),
-                response.text[:160],
+                "Shweta: expected JSON, got HTTP %s: %r", response.status, response.text[:160]
             )
             return
 
-        products = payload.get("products") if isinstance(payload, dict) else None
-        if not isinstance(products, list):
-            self.logger.error("Shweta: unexpected payload shape: %r", str(payload)[:160])
-            return
-
+        products = payload.get("products") or []
         if not products:
             self.logger.info("Shweta: page %d is empty, stopping", page)
             return
 
-        available = 0
         yielded = 0
-
         for product in products:
             name = (product.get("title") or "").strip()
             handle = product.get("handle")
             if not name or not handle:
                 continue
 
-            # A CPU normally has one variant, but compare only the buyable ones
-            # so a sold-out variant can never contribute a price.
             prices = []
             for variant in product.get("variants") or []:
                 if not variant.get("available"):
                     continue
-                raw = variant.get("price")
                 try:
-                    prices.append(int(round(float(raw))))
+                    prices.append(int(round(float(variant.get("price")))))
                 except (TypeError, ValueError):
                     continue
             if not prices:
                 continue
-            available += 1
 
             item = CpuPriceTrackerItem()
             item["name"] = name
             item["link"] = f"https://shwetacomputers.com/products/{handle}"
             item["price"] = min(prices)
             item["vendor"] = "Shweta Computers"
-
             yielded += 1
-            self.collected += 1
             yield item
 
         self.logger.info(
-            "Shweta page %d: %d products, %d available, %d items (collected %d)",
-            page,
-            len(products),
-            available,
-            yielded,
-            self.collected,
+            "Shweta page %d: %d products, %d in stock", page, len(products), yielded
         )
 
         if len(products) >= 250 and page < MAX_PAGES:
-            yield self.page_request(page + 1)
+            yield scrapy.Request(
+                API_URL.format(page=page + 1),
+                callback=self.parse,
+                cb_kwargs={"page": page + 1},
+                headers={"Accept": "application/json"},
+            )

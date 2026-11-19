@@ -1,17 +1,8 @@
 """Computech Store -- a plain HTML scrape, 20 products per request.
 
-The storefront is a custom Tailwind/htmx app, not WooCommerce (every
-/wp-json/ route answers 404), so there is no API to read. The grid arrives
-server-rendered inside #product-grid-container and "load more" is an htmx
-request for ?page=N&sort=name_asc.
-
-Pagination stops on repeated product links rather than on a short page. That
-detail matters: asking for a page past the end does not return an empty grid,
-it returns the last page again -- ?page=7 and ?page=20 both answer with the
-same single product that ?page=6 holds. A "stop when fewer than 20 cards"
-rule would therefore never fire when the catalogue size is an exact multiple
-of 20, and would spin until the page cap. Counting links already seen stops
-the walk on the first page that adds nothing.
+Custom Tailwind/htmx storefront, no WooCommerce API (every /wp-json/ route is
+404). Pagination stops on repeated links because a page past the end re-serves
+the last page instead of returning an empty grid.
 """
 
 import re
@@ -21,10 +12,6 @@ import scrapy
 from cpu_price_tracker.items import CpuPriceTrackerItem
 
 BASE_URL = "https://computechstore.in/product-category/processor/"
-
-PAGE_SIZE = 20
-
-# A sanity cap, not an expected size: the catalogue is 101 products (6 pages).
 MAX_PAGES = 10
 
 
@@ -57,10 +44,7 @@ class ComputechstoreSpider(scrapy.Spider):
             self.logger.info("Computech: no products on page %d, stopping", page)
             return
 
-        yielded = 0
-        no_price = 0
-        no_badge = 0
-
+        new_links = 0
         for card in cards:
             name = card.css("h3::text").get()
             href = card.css("a[href^='/product/']::attr(href)").get()
@@ -69,53 +53,28 @@ class ComputechstoreSpider(scrapy.Spider):
 
             link = response.urljoin(href)
             if link in self.seen_links:
-                # Page past the end: the site re-serves its last page.
                 continue
             self.seen_links.add(link)
+            new_links += 1
 
             price_text = card.css("div.items-baseline span::text").get()
-            price = None
-            if price_text:
-                digits = re.sub(r"[^\d]", "", price_text)
-                if digits:
-                    price = int(digits)
-
-            if price is None:
-                # Out of stock usually means the price element is replaced by
-                # a "notify me" block, so there is nothing to track.
-                no_price += 1
+            digits = re.sub(r"[^\d]", "", price_text) if price_text else ""
+            if not digits:
+                # No price element: the store swaps it for a "notify me" block
+                # on out-of-stock products.
                 continue
-
-            if "In Stock" not in card.get():
-                # A price without an in-stock badge. The store shows no
-                # "Out of Stock" badge at all, so these are ambiguous rather
-                # than definitely unavailable -- and they still quote a price,
-                # which is what this project records. Counted, not silently kept.
-                no_badge += 1
 
             item = CpuPriceTrackerItem()
             item["name"] = name.strip()
             item["link"] = link
-            item["price"] = price
+            item["price"] = int(digits)
             item["vendor"] = "Computech Store"
-
-            yielded += 1
             yield item
 
         self.logger.info(
-            "Computech page %d: %d cards, %d new items (collected %d; "
-            "%d without a price, %d without an in-stock badge)",
-            page,
-            len(cards),
-            yielded,
-            len(self.seen_links),
-            no_price,
-            no_badge,
+            "Computech page %d: %d cards, %d new items", page, len(cards), new_links
         )
 
-        if yielded == 0:
-            self.logger.info("Computech: page %d added nothing new, stopping", page)
+        if new_links == 0 or page >= MAX_PAGES:
             return
-
-        if page < MAX_PAGES:
-            yield self.page_request(page + 1)
+        yield self.page_request(page + 1)
