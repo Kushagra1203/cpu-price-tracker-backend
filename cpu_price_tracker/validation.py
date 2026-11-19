@@ -39,6 +39,7 @@ EXPECTED_VENDORS = [
     "Vishal Peripherals",
     "Ezpz Solutions",
     "Computech Store",
+    "SCL Gaming",
 ]
 
 

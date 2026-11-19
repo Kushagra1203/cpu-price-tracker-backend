@@ -86,7 +86,7 @@ anchors**:
 master_script.py             daily orchestrator: spiders → merge → normalize → MySQL
 backfill/                    one-time history backfill (scripts + anchor data)
 cpu_price_tracker/
-  spiders/                   8 Scrapy spiders, one per vendor
+  spiders/                   10 Scrapy spiders, one per vendor
   validation.py              post-run vendor health check (see below)
   listing.py                 parses a vendor's own "Showing X of N" total
   normalize_cpu_names.py     raw name cleaning + specs-dictionary matching
@@ -128,6 +128,8 @@ count rots the moment a vendor adds a CPU, while the site's banner cannot.
 | Vishal Peripherals | 46 — `46 of 141 products` | 10 ⚠️ | filtered search URL, 3 pages |
 | PC Studio | 67 — Store API `count: 67` | 0 ❌ | Store API JSON |
 | Computech Store | 101 — 6 pages of 20 | — | page walk, stops on repeated links |
+| SCL Gaming | 70 in stock of 213 | — | page walk, keeps `instock` cards only |
+| Shweta Computers | n/a — set has no total | — | Shopify `products.json`, available variants only |
 
 Each spider now logs `collected N of M`, so a short run names its own deficit
 in the log instead of leaving the total row count to be trusted.
@@ -181,6 +183,25 @@ WooCommerce (every `/wp-json/` route is 404), so it is scraped from the grid at
 for a page past the end re-serves the last page instead of returning nothing,
 so a "stop when the page looks short" rule would loop forever whenever the
 catalogue size is an exact multiple of 20.
+
+**SCL Gaming — 70 in stock of 213.** Availability is not visible on the
+listing: an out-of-stock card shows the same photo and the same price as a
+buyable one, and only the product page says "Out of stock". The Ryzen 5 5600X
+is listed at ₹12,250 while being unbuyable, so price cannot stand in for stock.
+WooCommerce does put the state in each card's class attribute
+(`instock` / `outofstock`), and that matches the product page for every card
+checked. The spider keeps only `instock` cards — without that it would have
+recorded prices for 143 products nobody can buy, mostly older generations the
+store leaves buried rather than delisting.
+
+**Shweta Computers — re-added, via Shopify JSON.** The old spider pinned
+`filter.v.price.lte=69699` into its URL, so every processor above ₹69,699 was
+invisible to it, and it guessed between five card selectors. It now reads
+`/collections/processor/products.json`, which returns title, handle, and
+variants with price and an `available` flag — no theme selectors at all. The
+site rate-limits hard (`429`, body `local_rate_limited`), so whether the runner
+gets through is only knowable from a run; the spider logs the status and
+payload head instead of raising.
 
 ### What the 2026-11-18 log showed
 
@@ -248,7 +269,7 @@ level, so `master_script.py` checks every vendor's row count after the insert:
   alone misses.
 * **Disappearance** (`EXPECTED_VENDORS`) — a spider that vanishes entirely is
   reported by name rather than as a silently shorter total. The list holds the
-  seven vendors the runner must always produce. PC Studio is excluded while its
+  eight vendors the runner must always produce. PC Studio is excluded while its
   new Store API route is unproven from the runner: if the block extends to
   `/wp-json/`, keeping it expected would fail the job every night for a cause no
   code change can fix, which is how a useful alert turns into wallpaper. It is
