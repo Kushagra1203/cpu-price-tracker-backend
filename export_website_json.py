@@ -19,6 +19,10 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 
 SAMPLE_STEP = 2  # keep every Nth day of history to bound JSON size
 
+# Publish reconstructed (anchored backfill) rows too? Set to False to publish
+# observed data only: the chart gets shorter, but nothing on it is modelled.
+INCLUDE_SYNTHETIC = True
+
 
 def slugify_frontend(s):
     """MUST match frontend: standard_name.toLowerCase().replace(/\\s+/g, '-')"""
@@ -61,28 +65,32 @@ def main():
         })
 
     # ---- price-history.json ----
-    cur.execute("""
-        SELECT name, vendor, price, snapshot_date
+    synthetic_filter = "" if INCLUDE_SYNTHETIC else "AND is_synthetic = 0"
+    cur.execute(f"""
+        SELECT name, vendor, price, snapshot_date, is_synthetic
         FROM price_history
-        WHERE price IS NOT NULL AND price > 0
+        WHERE price IS NOT NULL AND price > 0 {synthetic_filter}
         ORDER BY name, vendor, snapshot_date""")
     by_cpu = {}
     for r in cur.fetchall():
         by_cpu.setdefault(r["name"], []).append(
-            (r["snapshot_date"].isoformat(), r["vendor"], r["price"]))
+            (r["snapshot_date"].isoformat(), r["vendor"], r["price"],
+             bool(r["is_synthetic"])))
 
     cpus = []
     for name, entries in sorted(by_cpu.items()):
         # downsample: keep every Nth day per (cpu, vendor) + always the last day
         by_vendor = {}
-        for d, v, p in entries:
-            by_vendor.setdefault(v, []).append((d, p))
+        for d, v, p, synthetic in entries:
+            by_vendor.setdefault(v, []).append((d, p, synthetic))
         history = []
         for v, pts in sorted(by_vendor.items()):
             pts.sort()
-            for i, (d, p) in enumerate(pts):
+            for i, (d, p, synthetic) in enumerate(pts):
                 if i % SAMPLE_STEP == 0 or i == len(pts) - 1:
-                    history.append({"date": d, "vendor": v, "price": p})
+                    history.append(
+                        {"date": d, "vendor": v, "price": p, "synthetic": synthetic}
+                    )
         history.sort(key=lambda x: x["date"])
         cpus.append({"slug": slugify_frontend(name), "name": name, "history": history})
 

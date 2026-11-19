@@ -7,6 +7,11 @@ import time
 import random
 import mysql.connector
 from dotenv import load_dotenv
+from cpu_price_tracker.validation import (
+    EXPECTED_VENDORS,
+    check_vendor_counts,
+    vendor_counts,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -88,6 +93,8 @@ logger.info("Normalization completed!")
 
 # Step 4: Insert into MySQL (Aiven)
 logger.info("Inserting standardized data into MySQL...")
+current_counts = {}
+previous_counts = {}
 try:
     with mysql.connector.connect(
         host=DB_HOST,
@@ -136,6 +143,26 @@ try:
             # Load standardized JSON
             with open(STANDARDIZED_JSON, "r", encoding="utf-8") as f:
                 standardized_data = json.load(f)
+
+            # Row counts for this run, checked against the last run below.
+            current_counts = vendor_counts(standardized_data)
+
+            # How many rows each vendor produced on the previous real snapshot.
+            # A vendor that used to return 60 rows and now returns 0 is broken,
+            # not resting.
+            previous_counts = {}
+            try:
+                curr.execute("""
+                    SELECT vendor, COUNT(*) FROM price_history
+                    WHERE is_synthetic = 0 AND snapshot_date = (
+                        SELECT MAX(snapshot_date) FROM price_history
+                        WHERE is_synthetic = 0 AND snapshot_date < CURDATE()
+                    )
+                    GROUP BY vendor
+                """)
+                previous_counts = dict(curr.fetchall())
+            except mysql.connector.Error as err:
+                logger.warning(f"Could not read previous run counts: {err}")
 
             # Prepare data for batch insert
             insert_data = []
@@ -206,3 +233,26 @@ try:
     logger.info("Data inserted successfully into MySQL!")
 except mysql.connector.Error as err:
     logger.error(f"Database connection error: {err}")
+
+
+# Step 5: verify every vendor actually produced data
+# A 200 OK with zero products is the failure mode this exists for.
+if current_counts:
+    logger.info(
+        "Vendor rows: "
+        + ", ".join(f"{v}={n}" for v, n in sorted(current_counts.items()))
+    )
+else:
+    logger.warning("No rows were collected from any vendor.")
+
+problems = check_vendor_counts(current_counts, previous_counts, EXPECTED_VENDORS)
+for problem in problems:
+    logger.error("VENDOR CHECK FAILED: %s", problem)
+
+if problems:
+    # Exit non-zero so the GitHub Actions run goes red and emails, rather than
+    # completing "successfully" with a vendor silently missing.
+    logger.error("%d vendor check(s) failed; today's snapshot is incomplete.", len(problems))
+    sys.exit(1)
+
+logger.info("All vendor checks passed.")

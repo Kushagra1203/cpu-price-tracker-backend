@@ -105,14 +105,30 @@ DOWNLOAD_HANDLERS = {
 }
 
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
-# Playwright launch options (headful mode)
-# PLAYWRIGHT_LAUNCH_OPTIONS = {
-#     'headless': True,  # Launch visible browser
-#     'args': ['--no-sandbox', '--disable-dev-shm-usage']
-# }
+# Playwright launch options
+# channel="chromium" forces the full Chromium build instead of the stripped
+# chromium-headless-shell, so a single browser build serves both headless and
+# headful runs (and saves ~270 MB in ~/.cache/ms-playwright).
+PLAYWRIGHT_LAUNCH_OPTIONS = {
+    "headless": True,
+    "channel": "chromium",
+    "args": ["--no-sandbox", "--disable-dev-shm-usage"],
+}
 
 # Other settings
 DOWNLOAD_DELAY = 3
 COOKIES_ENABLED = True
 RETRY_ENABLED = True
 RETRY_TIMES = 3
+
+# 429 is an explicit "you are going too fast", not a transient error. elitehubs
+# answers with `429 local_rate_limited` and `Retry-After: 60` from Cloudflare
+# when the request rate is too high, which used to yield an empty result set
+# that the pipeline recorded as a successful run.
+RETRY_HTTP_CODES = [408, 429, 500, 502, 503, 504, 522, 524]
+
+# Throttle automatically instead of hammering a vendor into a rate limit.
+AUTOTHROTTLE_ENABLED = True
+AUTOTHROTTLE_START_DELAY = 5
+AUTOTHROTTLE_MAX_DELAY = 60
+AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0

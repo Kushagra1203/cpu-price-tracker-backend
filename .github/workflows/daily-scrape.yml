@@ -34,6 +34,9 @@ jobs:
           pip install -r requirements.txt
           playwright install --with-deps chromium
 
+      - name: Run tests
+        run: python -m unittest discover -s tests -t . -v
+
       - name: Write CA certificate from secret
         run: |
           mkdir -p certs

@@ -86,7 +86,8 @@ anchors**:
 master_script.py             daily orchestrator: spiders → merge → normalize → MySQL
 backfill/                    one-time history backfill (scripts + anchor data)
 cpu_price_tracker/
-  spiders/                   9 Scrapy spiders (7 active vendors)
+  spiders/                   7 Scrapy spiders, one per vendor
+  validation.py              post-run vendor health check (see below)
   normalize_cpu_names.py     raw name cleaning + specs-dictionary matching
   cpu_data.csv               curated specs dictionary (185 CPUs: cores, threads, TDP…)
   settings.py                Scrapy config (Playwright handlers, delays, UA)
@@ -111,10 +112,42 @@ DB_SSL_CA=certs/ca.pem
 
 | Vendor | State |
 |---|---|
-| MDComputers, PC Studio, Elitehubs, The IT Depot, Ezpz, Vedant | ✅ daily |
+| MDComputers, PC Studio, The IT Depot, Ezpz, Vedant | ✅ daily |
 | Vishal Peripherals | ⚠️ intermittent (aggressive rate limiting; Playwright-based) |
-| SCL Gaming | 🚧 paused — product grid only renders per-product pages |
-| Shweta Computers | ❌ removed — prices pulled from site ("call for price") |
+| Elitehubs | ⚠️ Cloudflare answers `429 local_rate_limited` before any HTML is served |
+
+### Why Elitehubs is flagged, not fixed
+
+The spider is already Playwright-based. A real browser does not help: the 429
+comes from Cloudflare's edge, so the rendered page is literally the 18-byte body
+`local_rate_limited`. The JSON endpoint (`/collections/processor/products.json`)
+returns the same 429, which rules out JavaScript rendering entirely.
+
+That is a rejection of the requesting IP, not a parser bug. It is also exactly
+the failure that used to be invisible: the spider returned zero items, exited
+cleanly, and the run logged `Data inserted successfully`. `validation.py` exists
+to make that case fail loudly instead.
+
+## Failure detection
+
+An empty spider result is indistinguishable from a successful one at the process
+level, so `master_script.py` checks every vendor's row count after the insert:
+
+* **Absolute floor** (`MIN_ROWS_PER_VENDOR = 3`) — a vendor returning nothing is
+  always wrong.
+* **Drop vs. last run** (`MIN_FRACTION_OF_PREVIOUS = 0.6`) — a vendor that keeps
+  its catalogue but loses most of it is also wrong. This is the case a floor
+  alone misses.
+* **Disappearance** (`EXPECTED_VENDORS`) — a spider that vanishes entirely is
+  reported by name rather than as a silently shorter total.
+
+Failures exit non-zero, so the GitHub Actions run goes red and emails, instead of
+completing green with a vendor missing. The check runs *after* the commit, so the
+day's partial data is still stored — a red run never loses data, it only demands
+attention.
+
+Vendor counts from the last real snapshot are read from `price_history` and
+compared against today's, which means the check needs no extra state file.
 
 ## Roadmap
 
@@ -122,4 +155,3 @@ DB_SSL_CA=certs/ca.pem
 - [x] History backfill fitted to market anchors
 - [x] Scheduled runs (GitHub Actions, daily 9pm IST)
 - [ ] Analytics layer (SQL + pandas) and dashboards (Streamlit, Tableau Public)
-- [ ] sclgaming spider rebuild
