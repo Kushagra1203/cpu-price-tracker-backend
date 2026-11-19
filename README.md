@@ -128,7 +128,7 @@ count rots the moment a vendor adds a CPU, while the site's banner cannot.
 | Vishal Peripherals | 46 — `46 of 141 products` | 10 ⚠️ | filtered search URL, 3 pages |
 | PC Studio | 67 — Store API `count: 67` | 0 ❌ | Store API JSON |
 | Computech Store | 101 — 6 pages of 20 | — | page walk, stops on repeated links |
-| SCL Gaming | 70 in stock of 213 | — | page walk, keeps `instock` cards only |
+| SCL Gaming | 70 in stock, all priced, of 213 | — | page walk, keeps `instock` cards only |
 | Shweta Computers | n/a — set has no total | — | Shopify `products.json`, available variants only |
 
 Each spider now logs `collected N of M`, so a short run names its own deficit
@@ -185,14 +185,19 @@ so a "stop when the page looks short" rule would loop forever whenever the
 catalogue size is an exact multiple of 20.
 
 **SCL Gaming — 70 in stock of 213.** Availability is not visible on the
-listing: an out-of-stock card shows the same photo and the same price as a
-buyable one, and only the product page says "Out of stock". The Ryzen 5 5600X
-is listed at ₹12,250 while being unbuyable, so price cannot stand in for stock.
+listing: an out-of-stock card shows the same photo and often the same price as
+a buyable one, and the theme never renders the words "Out of stock" — not on
+the listing, and not on the product page either. Of the 213 processors, 119 are
+out of stock but still priced, 24 are out of stock with an empty `<p class="price">`
+and no add-to-cart button, and 70 are in stock and priced. The Ryzen 5 5600X is
+listed at ₹12,250 while being unbuyable, so price cannot stand in for stock.
+
 WooCommerce does put the state in each card's class attribute
-(`instock` / `outofstock`), and that matches the product page for every card
-checked. The spider keeps only `instock` cards — without that it would have
-recorded prices for 143 products nobody can buy, mostly older generations the
-store leaves buried rather than delisting.
+(`instock` / `outofstock`), and that matched the product page for every card
+checked. The spider keeps only `instock` cards and then requires a price, so an
+unpriced card cannot become a row even if its class were wrong. Without the
+stock filter it would have stored 119 unbuyable prices, mostly older
+generations the store leaves buried rather than delisting.
 
 **Shweta Computers — re-added, via Shopify JSON.** The old spider pinned
 `filter.v.price.lte=69699` into its URL, so every processor above ₹69,699 was
