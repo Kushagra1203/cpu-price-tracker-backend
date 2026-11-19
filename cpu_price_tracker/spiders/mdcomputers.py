@@ -52,7 +52,19 @@ class mdcomputerSpider(scrapy.Spider):
             meta={
                 "playwright": True,
                 "playwright_page_methods": [
-                    PageMethod("wait_for_selector", "div.product-wrapper", timeout=20000)
+                    # state="attached", not the default "visible". On 2026-11-19
+                    # the locator resolved to 23 product-wrapper elements and
+                    # this still timed out, because the first one is hidden and
+                    # Playwright only waits for the first match to become
+                    # visible. The request was then discarded and the run
+                    # recorded 0 rows while the page had loaded fine:
+                    #   locator resolved to 23 elements ... Timeout 20000ms
+                    PageMethod(
+                        "wait_for_selector",
+                        "div.product-wrapper",
+                        state="attached",
+                        timeout=20000,
+                    )
                 ],
             },
         )

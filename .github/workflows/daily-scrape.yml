@@ -57,6 +57,18 @@ jobs:
         continue-on-error: true
         run: python master_script.py
 
+      # Each spider now writes its own log file instead of interleaving three
+      # crawls into the run log, so this is where the detail lives when a
+      # vendor comes back short.
+      - name: Upload per-spider logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spider-logs
+          path: logs/
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Refresh frontend JSONs and push to website repo
         if: env.FRONTEND_PAT != ''
         run: |

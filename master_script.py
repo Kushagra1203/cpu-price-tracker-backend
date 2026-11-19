@@ -1,12 +1,13 @@
+import concurrent.futures
+import json
+import logging
 import os
 import subprocess
 import sys
-import json
-import logging
-import time
-import random
+
 import mysql.connector
 from dotenv import load_dotenv
+
 from cpu_price_tracker.validation import (
     EXPECTED_VENDORS,
     check_vendor_counts,
@@ -24,8 +25,28 @@ load_dotenv()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = BASE_DIR
 DATA_DIR = os.path.join(PROJECT_ROOT, "cpu_price_tracker", "data")
+LOG_DIR = os.path.join(PROJECT_ROOT, "logs")
 NORMALIZER = os.path.join(PROJECT_ROOT, "cpu_price_tracker", "normalize_cpu_names.py")
 STANDARDIZED_JSON = os.path.join(DATA_DIR, "processors_standardized.json")
+
+# How many spiders may run at once.
+#
+# Each spider is already its own `scrapy crawl` subprocess, so the GIL is not
+# involved -- the old loop was serial because of a 30-45 s sleep between
+# spiders, not because of Python. Measured on the 2026-11-19 run: the ten
+# spiders spent 92 s actually crawling inside a 433 s wall clock, so 341 s
+# (79%) was that sleep.
+#
+# Three, not ten: the runner has 2 vCPU / 7 GB and up to three of these launch
+# a Chromium, so three browsers is the practical ceiling before Playwright
+# starts timing out under CPU starvation. It also keeps the three Shopify
+# shops (Elitehubs, Vishal, Shweta) from all firing at once.
+MAX_PARALLEL_SPIDERS = 3
+
+# How much of a failed spider's own log to echo into the run log. Only the
+# interesting lines are picked, because DEBUG lines are most of a Scrapy log
+# and never contain the reason.
+LOG_TAIL_LINES = 40
 
 # MySQL connection details from environment variables
 DB_HOST = os.getenv("DB_HOST")
@@ -49,21 +70,61 @@ spider_to_json = [
     ("shwetacomputers", "processors_shweta.json"),
 ]
 
-for i, (spider, json_file) in enumerate(spider_to_json):
-    output_path = os.path.join(DATA_DIR, json_file)
-    logger.info(f"Running spider {spider} --> output: {output_path}")
+
+def log_tail(log_path, limit=LOG_TAIL_LINES):
+    """The last few informative lines of one spider's log file."""
     try:
-        subprocess.run(
-            [sys.executable, "-m", "scrapy", "crawl", spider, "-O", output_path],
-            check=True,
-            cwd=PROJECT_ROOT,
-        )
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Spider {spider} failed: {e}")
+        with open(log_path, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
+    except OSError:
+        return []
+
+    interesting = [line.rstrip("\n") for line in lines if " DEBUG: " not in line]
+    return interesting[-limit:]
+
+
+def run_spider(spider, json_file):
+    """Run one spider in its own subprocess and report what it produced.
+
+    Each spider writes its own log so that three interleaved crawls stay
+    readable; on failure the interesting tail is echoed into the run log.
+    """
+    output_path = os.path.join(DATA_DIR, json_file)
+    log_path = os.path.join(LOG_DIR, f"{spider}.log")
+
+    # -O truncates the feed, but only once Scrapy starts. If the process dies
+    # before that (bad spider name, import error) a stale file from an earlier
+    # run would otherwise be silently merged as if it were today's data.
+    if os.path.exists(output_path):
+        os.remove(output_path)
+
+    command = [
+        sys.executable,
+        "-m",
+        "scrapy",
+        "crawl",
+        spider,
+        "-O",
+        output_path,
+    ]
+
+    try:
+        with open(log_path, "w", encoding="utf-8") as log_file:
+            returncode = subprocess.run(
+                command,
+                cwd=PROJECT_ROOT,
+                stdout=log_file,
+                stderr=subprocess.STDOUT,
+                check=False,
+            ).returncode
+    except OSError as err:
+        returncode = -1
+        with open(log_path, "a", encoding="utf-8") as log_file:
+            log_file.write(f"Could not start Scrapy: {err}\n")
 
     # Report how many items the spider actually produced. A spider that exits
     # cleanly with an empty file is the failure mode the vendor check exists
-    # for; naming the count here points straight at the spider log above.
+    # for; naming the count here points straight at the spider log.
     items = 0
     if os.path.exists(output_path):
         try:
@@ -72,18 +133,70 @@ for i, (spider, json_file) in enumerate(spider_to_json):
             if isinstance(scraped, list):
                 items = len(scraped)
         except (json.JSONDecodeError, OSError) as err:
-            logger.error(f"Could not read {json_file}: {err}")
+            logger.error("Could not read %s: %s", json_file, err)
 
-    if items:
-        logger.info(f"{spider}: {items} items")
-    else:
-        logger.warning(f"{spider}: 0 items - see the spider log above")
+    return {
+        "spider": spider,
+        "items": items,
+        "returncode": returncode,
+        "log_path": log_path,
+    }
 
-    # Delay between spiders to avoid cross-site rate limiting
-    if i < len(spider_to_json) - 1:
-        delay = random.randint(30, 45)
-        logger.info(f"Waiting {delay}s before next spider...")
-        time.sleep(delay)
+
+def report(result):
+    """Print one finished spider, with its log tail if it produced nothing."""
+    spider = result["spider"]
+
+    if result["returncode"] != 0:
+        logger.warning(
+            "%s: exited %s after %d items",
+            spider,
+            result["returncode"],
+            result["items"],
+        )
+
+    if result["items"]:
+        logger.info("%s: %d items", spider, result["items"])
+        return
+
+    logger.warning("%s: 0 items - see %s", spider, result["log_path"])
+    for line in log_tail(result["log_path"]):
+        logger.warning("  | %s", line)
+
+
+os.makedirs(LOG_DIR, exist_ok=True)
+os.makedirs(DATA_DIR, exist_ok=True)
+
+logger.info(
+    "Running %d spiders, %d at a time",
+    len(spider_to_json),
+    MAX_PARALLEL_SPIDERS,
+)
+
+results = {}
+with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_PARALLEL_SPIDERS) as pool:
+    futures = {
+        pool.submit(run_spider, spider, json_file): spider
+        for spider, json_file in spider_to_json
+    }
+    for future in concurrent.futures.as_completed(futures):
+        # A spider failing to run is data, not an exception: the vendor check
+        # below is what turns it into a red run.
+        result = future.result()
+        results[result["spider"]] = result
+        report(result)
+
+for spider, _ in spider_to_json:
+    if spider not in results:
+        logger.error("%s: never ran", spider)
+
+logger.info(
+    "Spider totals (raw items): "
+    + ", ".join(
+        f"{spider}={results[spider]['items']}" if spider in results else f"{spider}=?"
+        for spider, _ in sorted(spider_to_json)
+    )
+)
 
 # Step 2: Merge JSONs and remove duplicates by link
 merged = []

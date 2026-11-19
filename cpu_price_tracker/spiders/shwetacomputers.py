@@ -45,7 +45,17 @@ class ShwetacomputersSpider(scrapy.Spider):
     allowed_domains = ["shwetacomputers.com"]
 
     custom_settings = {
-        "DOWNLOAD_DELAY": 3,
+        # Cloudflare answers this endpoint with 429 + `Retry-After: 60` once the
+        # runner's shared IP has spent its budget. Scrapy's retry is not
+        # Retry-After aware, and AutoThrottle paces by latency rather than by
+        # status code, so on 2026-11-19 the four attempts landed 6 s apart --
+        # all inside the same 60 s window -- and the spider gave up with 0 rows
+        # after producing 81 half an hour earlier. AutoThrottle off and a fixed
+        # 20 s delay stretch six attempts across ~2 minutes, which outlasts the
+        # window instead of losing to it.
+        "AUTOTHROTTLE_ENABLED": False,
+        "DOWNLOAD_DELAY": 20,
+        "RETRY_TIMES": 6,
         "CONCURRENT_REQUESTS_PER_DOMAIN": 1,
         "USER_AGENT": (
             "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "

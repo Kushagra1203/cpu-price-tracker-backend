@@ -118,28 +118,56 @@ Every count below is the vendor's own, read off the page or the API — not a
 number typed in by hand. That distinction is the point: a hard-coded expected
 count rots the moment a vendor adds a CPU, while the site's banner cannot.
 
-| Vendor | Site's own count | 2026-11-19 run | Spider |
-|---|---|---|---|
-| MDComputers | 62 — `Showing 1 to 20 of 62 (4 Pages)` | 0 ⚠️ 403 → Playwright | page walk, stops at the stated page count |
-| The IT Depot | 53 — `Showing 1 to 12 of 53 (5 Pages)` | 53 ✅ | page walk, throttled |
-| Vedant Computers | 41 — `Showing 1 to 41 of 41 (1 Pages)` | 41 ✅ | one request, `limit=100` |
-| Ezpz Solutions | 43 | 43 ✅ | page walk |
-| Elitehubs | 50 in stock | 24 ⚠️ | one request, `usf_take=56` |
-| Vishal Peripherals | 46 — `46 of 141 products` | 46 ✅ | filtered search URL, 3 pages |
-| PC Studio | 67 — Store API `count: 67` | 0 ❌ 403 on `/wp-json/` too | Store API JSON |
-| Computech Store | 101 — 6 pages of 20 | 101 ✅ | page walk, stops on repeated links |
-| SCL Gaming | 70 in stock, all priced, of 213 | 0 ⚠️ 403 → Playwright | keeps `instock` cards only |
-| Shweta Computers | n/a — set has no total | 81 ✅ | Shopify `products.json` |
+| Vendor | Site's own count | 2026-11-19 15:25 | 2026-11-19 15:46 | Spider |
+|---|---|---|---|---|
+| MDComputers | 62 — `Showing 1 to 20 of 62 (4 Pages)` | 0 ⚠️ 403 | 0 ⚠️ our bug, fixed | page walk, stops at the stated page count |
+| The IT Depot | 53 — `Showing 1 to 12 of 53 (5 Pages)` | 53 ✅ | 53 ✅ | page walk, throttled |
+| Vedant Computers | 41 — `Showing 1 to 41 of 41 (1 Pages)` | 41 ✅ | 41 ✅ | one request, `limit=100` |
+| Ezpz Solutions | 43 | 43 ✅ | 43 ✅ | page walk |
+| Elitehubs | 50 in stock | 24 ⚠️ | 22 ⚠️ | one request, `usf_take=56` |
+| Vishal Peripherals | 46 — `46 of 141 products` | 46 ✅ | 46 ✅ | filtered search URL, 3 pages |
+| PC Studio | 67 — Store API `count: 67` | 0 ❌ 403 on `/wp-json/` too | 0 ❌ same | Store API JSON |
+| Computech Store | 101 — 6 pages of 20 | 101 ✅ | 101 ✅ | page walk, stops on repeated links |
+| SCL Gaming | 70 in stock, all priced, of 213 | 0 ⚠️ 403 | 0 ❌ 403 through Chromium too | keeps `instock` cards only |
+| Shweta Computers | n/a — set has no total | 81 ✅ | 0 ⚠️ 429, backoff too short | Shopify `products.json` |
 
-That run merged 389 raw rows and inserted 378: the other 11 were names the
+The 15:25 run merged 389 raw rows and inserted 378: the other 11 were names the
 normalizer could not match against `cpu_data.csv` (`Matched 378, Unmatched 11`),
 not crawler losses. It is also why vendor totals can differ slightly from the
 per-spider counts — Computech scraped 101 and contributed 99, Shweta 81 → 73.
+
+The 15:46 run was the re-run that tested the fixes above. It merged 306 raw
+rows, of which 303 matched a CPU in `cpu_data.csv` (`Matched 303,
+Unmatched 3`). Three of its four problems are diagnosed below; the fourth is
+that two runs twenty minutes apart is enough to burn the runner's shared IP
+budget on Shopify, which is a real constraint rather than a code fault.
 
 Each spider now logs `collected N of M`, so a short run names its own deficit
 in the log instead of leaving the total row count to be trusted.
 
 ### Why each vendor is short, and what changed
+
+**MDComputers — 403 from the runner, then 0 rows from a bad wait.** From a
+residential connection the listing answers 200; from the runner it answered 403
+on page 1 with a Chrome *and* a Firefox user agent, while the `Scrapy/2.13.3`
+agent is refused from every IP. That rules out the selectors and rules out a
+user-agent fix, so the spider now renders through Playwright, which is how
+Elitehubs and Vishal already get through Cloudflare from the same runner.
+
+The first Playwright run then produced 0 rows for a second, self-inflicted
+reason. `wait_for_selector` defaults to `state="visible"`, the page contained
+23 `div.product-wrapper` elements, and the first of them is hidden — so the
+wait timed out after 20 s and scrapy-playwright discarded a page that had
+loaded perfectly:
+
+```
+locator resolved to 23 elements. Proceeding with the first one:
+  <div class="product-wrapper">…</div>
+Page.wait_for_selector: Timeout 20000ms exceeded.
+```
+
+It now waits for `state="attached"`. The lesson is in the log line: a selector
+that *resolves* and a selector that *passes* are different questions.
 
 **The IT Depot — 0 rows, then 53.** Not a parser problem: the five listing
 pages are ~1 MB of HTML each and the spider fetched them back to back with no
@@ -158,8 +186,21 @@ and it falls back to its own default page of 24. Worse, the app rewrites the
 address bar with `history.replaceState` after load and drops `usf_take`, so the
 spider's own `response.url` no longer contained the value it had asked for and
 the crawl stopped after one page with `Could not parse usf_take ... Stopping`.
-It now asks for 56 -- verified in a browser to render all 50 -- and carries the
-value through `cb_kwargs` instead of reading it back out of the URL.
+It now carries the value through `cb_kwargs` instead of reading it back out of
+a URL the page mutates.
+
+**The `usf_take` theory turned out to be wrong.** Asking for 56 produced 22
+tiles, and 28 produced 21-26 and 100 produced 24: the number barely moves, so
+the parameter is not sizing the response at all. The likely mechanism is
+client-side: this is a filter app that paginates in the browser, and only the
+tiles in view are rendered, so a headless 1280x720 Chromium materialises about
+two dozen cards and stops. That matters because the hardcoded log line "the
+in-stock collection holds 50" came from a manual browser check, and the run
+cannot currently see the difference between "the store has 22" and "the page
+only painted 22". This one is open, and it needs a measurement rather than
+another guess.
+
+**Vishal Peripherals — 10 of 46.** The spider was reading
 
 **Vishal Peripherals — 10 of 46.** The spider was reading
 `/collections/processors?page=N`, which shows 20 tiles of which half are out of
@@ -215,6 +256,12 @@ unpriced card cannot become a row even if its class were wrong. Without the
 stock filter it would have stored 119 unbuyable prices, mostly older
 generations the store leaves buried rather than delisting.
 
+The 15:46 run moved it onto Playwright and it still returned 403 — in 0.2 s,
+with `cf.errors.css` and `cf-no-screenshot-error.png` in the response. That is
+Cloudflare refusing the runner's IP before any document exists, the same block
+as PC Studio, and no browser can solve it. The spider stays as it is so that a
+proxy is the only thing needed to bring the vendor back.
+
 **Shweta Computers — re-added, via Shopify JSON.** The old spider pinned
 `filter.v.price.lte=69699` into its URL, so every processor above ₹69,699 was
 invisible to it, and it guessed between five card selectors. It now reads
@@ -223,6 +270,19 @@ variants with price and an `available` flag — no theme selectors at all. The
 site rate-limits hard (`429`, body `local_rate_limited`), so whether the runner
 gets through is only knowable from a run; the spider logs the status and
 payload head instead of raising.
+
+It got through at 15:25 (81 rows) and was refused at 15:46: four attempts, six
+seconds apart, then `Gave up retrying`. The window in that header is
+`Retry-After: 60`, so all four attempts fell inside one window. Scrapy's retry
+is not `Retry-After` aware and AutoThrottle paces by latency rather than by
+status, so the retry count was never the problem — the spacing was. It now
+runs with AutoThrottle off, a fixed 20 s delay and six attempts, which spans
+about two minutes and outlasts the window.
+
+That the two runs were twenty minutes apart matters, but only secondarily: one
+request per run is nowhere near a per-IP budget, so the trigger is that GitHub
+runners share egress IPs. It is the one vendor whose reliability we do not
+control.
 
 ### What the 2026-11-18 log showed
 
