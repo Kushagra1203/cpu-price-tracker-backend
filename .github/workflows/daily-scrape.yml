@@ -50,6 +50,11 @@ jobs:
           fi
 
       - name: Run pipeline (scrape -> normalize -> MySQL)
+        # continue-on-error so a vendor health-check failure does not stop the
+        # frontend refresh below: a partial snapshot is still worth publishing.
+        # The job is failed again explicitly at the end.
+        id: pipeline
+        continue-on-error: true
         run: python master_script.py
 
       - name: Refresh frontend JSONs and push to website repo
@@ -67,3 +72,9 @@ jobs:
             git commit -m "data: daily refresh $(date -u +%F)"
             git push
           fi
+
+      - name: Fail if the vendor health check reported problems
+        if: steps.pipeline.outcome == 'failure'
+        run: |
+          echo "::error::Pipeline exited non-zero - a vendor was missing or well below its previous row count. See the VENDOR CHECK FAILED lines above."
+          exit 1

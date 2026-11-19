@@ -144,7 +144,9 @@ level, so `master_script.py` checks every vendor's row count after the insert:
 Failures exit non-zero, so the GitHub Actions run goes red and emails, instead of
 completing green with a vendor missing. The check runs *after* the commit, so the
 day's partial data is still stored — a red run never loses data, it only demands
-attention.
+attention. The workflow marks the pipeline step `continue-on-error` so the frontend
+JSON refresh still runs, then fails the job explicitly afterwards: a partial
+snapshot is still worth publishing, but it should still be visible as a failure.
 
 Vendor counts from the last real snapshot are read from `price_history` and
 compared against today's, which means the check needs no extra state file.
