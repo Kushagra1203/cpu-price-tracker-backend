@@ -106,6 +106,9 @@ DB_HOST=... DB_PORT=... DB_USER=... DB_PASSWORD=... DB_NAME=...
 DB_SSL_CA=certs/ca.pem
 
 .venv/bin/python master_script.py
+
+# tests (no database, no network)
+python -m unittest discover -s tests -t .
 ```
 
 ## Current status

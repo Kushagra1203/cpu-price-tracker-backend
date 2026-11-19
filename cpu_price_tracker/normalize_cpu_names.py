@@ -87,9 +87,22 @@ def standardize_cpu_names(
     raw_data = load_json(input_json)
     matched_data = []
     unmatched_data = []
+    skipped_data = []
 
     for item in raw_data:
-        raw_name = item.get("name", "")
+        raw_name = item.get("name")
+        # `item.get("name", "")` is not enough: the key exists with a null
+        # value when a spider's title selector misses, so the default never
+        # applies. One such row used to abort the whole night's pipeline here,
+        # before anything reached the database. Drop the row, keep the run.
+        if not isinstance(raw_name, str) or not raw_name.strip():
+            skipped_data.append(item)
+            print(
+                "Skipping item with no usable name: "
+                f"vendor={item.get('vendor')!r} link={item.get('link')!r}"
+            )
+            continue
+
         cleaned_name = clean_and_standardize_name(raw_name)
         standardized_name = match_name(cleaned_name, augmented_dict.keys())
 
@@ -109,6 +122,7 @@ def standardize_cpu_names(
     print(f"Total entries processed: {len(raw_data)}")
     print(f"Matched entries: {len(matched_data)}")
     print(f"Unmatched entries: {len(unmatched_data)}")
+    print(f"Skipped entries (no name): {len(skipped_data)}")
     print(f"Standardized data saved to: {output_standardized_json}")
     print(f"Unmatched data saved to: {output_unmatched_json}")
 
