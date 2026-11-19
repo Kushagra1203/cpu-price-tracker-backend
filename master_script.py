@@ -57,6 +57,25 @@ for i, (spider, json_file) in enumerate(spider_to_json):
         )
     except subprocess.CalledProcessError as e:
         logger.error(f"Spider {spider} failed: {e}")
+
+    # Report how many items the spider actually produced. A spider that exits
+    # cleanly with an empty file is the failure mode the vendor check exists
+    # for; naming the count here points straight at the spider log above.
+    items = 0
+    if os.path.exists(output_path):
+        try:
+            with open(output_path, "r", encoding="utf-8") as f:
+                scraped = json.load(f)
+            if isinstance(scraped, list):
+                items = len(scraped)
+        except (json.JSONDecodeError, OSError) as err:
+            logger.error(f"Could not read {json_file}: {err}")
+
+    if items:
+        logger.info(f"{spider}: {items} items")
+    else:
+        logger.warning(f"{spider}: 0 items - see the spider log above")
+
     # Delay between spiders to avoid cross-site rate limiting
     if i < len(spider_to_json) - 1:
         delay = random.randint(30, 45)

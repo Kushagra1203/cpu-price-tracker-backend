@@ -110,11 +110,34 @@ DB_SSL_CA=certs/ca.pem
 
 ## Current status
 
-| Vendor | State |
-|---|---|
-| MDComputers, PC Studio, The IT Depot, Ezpz, Vedant | ✅ daily |
-| Vishal Peripherals | ⚠️ intermittent (aggressive rate limiting; Playwright-based) |
-| Elitehubs | ⚠️ Cloudflare throttles some IPs with `429 local_rate_limited` |
+| Vendor | Home connection | GitHub runner |
+|---|---|---|
+| MDComputers, The IT Depot, Ezpz, Vedant | ✅ | ✅ |
+| PC Studio | ✅ 67 rows (2026-11-15) | ❌ 0 rows (2026-11-18) |
+| Vishal Peripherals | ✅ 10 rows (2026-11-15) | ❌ 0 rows (2026-11-18) |
+| Elitehubs | ❌ `429 local_rate_limited` | ✅ 26 rows (2026-11-18) |
+
+### Coverage depends on the network, not the code
+
+No single network sees all seven vendors. Comparing the same code from two
+networks on consecutive runs gives the full set: Elitehubs refuses the home
+connection but serves the runner, while PC Studio and Vishal do the reverse.
+
+The evidence points at IP-level filtering rather than parsing:
+
+* the 2026-11-18 run finished in **4m56s**, of which ~3m40s is the fixed
+  30–45s sleep between spiders — so all seven spiders shared roughly 70 seconds
+  of actual work. Two vendors returned nothing *instantly*, which is a refusal,
+  not a slow page;
+* Elitehubs' block survives Playwright (a real browser) and a plain JSON
+  endpoint, so it cannot be JavaScript rendering;
+* the failures move with the network: same code, same day, opposite results.
+
+Practical consequence: the nightly runner covers five to six vendors, not seven.
+The union of a CI run and a local run is complete. That is a coverage limit of
+the free-hosting setup, not a bug, and `validation.py` reports it by name. A
+proxy for the two blocked vendors would fix it, at a cost and complexity the
+project does not need.
 
 ### Why Elitehubs is flagged, not "fixed"
 
@@ -166,6 +189,9 @@ snapshot is still worth publishing, but it should still be visible as a failure.
 
 Vendor counts from the last real snapshot are read from `price_history` and
 compared against today's, which means the check needs no extra state file.
+Each spider also logs its own item count the moment it finishes
+(`pcstudio: 0 items - see the spider log above`), so a red build points at the
+empty crawler instead of only at the summary.
 
 ## Roadmap
 
