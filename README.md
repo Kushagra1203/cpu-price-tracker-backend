@@ -113,62 +113,86 @@ python -m unittest discover -s tests -t .
 
 ## Current status
 
-| Vendor | Home connection | GitHub runner |
+| Vendor | GitHub runner | Detail |
 |---|---|---|
-| MDComputers, The IT Depot, Ezpz, Vedant | ✅ | ✅ |
-| PC Studio | ✅ 67 rows (2026-11-15) | ❌ 0 rows (2026-11-18) |
-| Vishal Peripherals | ✅ 10 rows (2026-11-15) | ❌ 0 rows (2026-11-18) |
-| Elitehubs | ❌ `429 local_rate_limited` | ✅ 26 rows (2026-11-18) |
+| MDComputers, The IT Depot, Ezpz, Vedant | ✅ | 63 / 53 / 43 / 41 items |
+| Elitehubs | ⚠️ 26 items | first page only; every pagination request answers 429 |
+| Vishal Peripherals | ⚠️ intermittent | 10 items when the grid renders before the response is captured |
+| PC Studio | ❌ 403 | Cloudflare refuses the runner's IP before any HTML is served |
 
-### Coverage depends on the network, not the code
+### What the 2026-11-18 log actually showed
 
-No single network sees all seven vendors. Comparing the same code from two
-networks on consecutive runs gives the full set: Elitehubs refuses the home
-connection but serves the runner, while PC Studio and Vishal do the reverse.
+Per-spider totals from that run's `Stored json feed` lines:
 
-The evidence points at IP-level filtering rather than parsing:
+```
+elitehubs        26      theitdepot   53      mdcomputers  63
+pcstudio          0      vedant       41      vishal       10
+ezpzsolutions    43
+```
 
-* the 2026-11-18 run finished in **4m56s**, of which ~3m40s is the fixed
-  30–45s sleep between spiders — so all seven spiders shared roughly 70 seconds
-  of actual work. Two vendors returned nothing *instantly*, which is a refusal,
-  not a slow page;
-* Elitehubs' block survives Playwright (a real browser) and a plain JSON
-  endpoint, so it cannot be JavaScript rendering;
-* the failures move with the network: same code, same day, opposite results.
+Six of seven vendors produced data. Only one is genuinely blocked, and the
+individual causes are different:
 
-Practical consequence: the nightly runner covers five to six vendors, not seven.
-The union of a CI run and a local run is complete. That is a coverage limit of
-the free-hosting setup, not a bug, and `validation.py` reports it by name. A
-proxy for the two blocked vendors would fix it, at a cost and complexity the
-project does not need.
+**PC Studio — blocked (not fixable in code).** One request, one response:
 
-### Why Elitehubs is flagged, not "fixed"
+```
+<GET https://www.pcstudio.in/product-category/processor/>
+Response: <403
+... cf.errors.css, cf-no-screenshot-error.png, challenge-platform/.../jsd/main.js
+```
 
-The spider is already Playwright-based. A real browser does not help: the 429
-comes from Cloudflare's edge, so the rendered page is literally the 18-byte body
-`local_rate_limited`. The JSON endpoint (`/collections/processor/products.json`)
-returns the same 429, which rules out JavaScript rendering entirely.
+That is Cloudflare's error page, arriving in 0.6s. Playwright cannot help: the
+rejection happens before the document exists. Same spider from a home
+connection returns 67 items. A proxy would fix it; nothing in the parser will.
 
-That is a rejection of the requesting IP, not a parser bug — and it is per-IP,
-not global. Verified by comparing two networks on the same day: the scheduled
-GitHub Actions runner collected **26 Elitehubs rows on 2026-11-18**, while the
-identical spider run from a home connection collected **0** and got
+**Elitehubs — first page only.** The first request (`usf_take=28`) returns 200
+and 26 items. The pagination request (`usf_take=56`) answers 307 → 429, then
+fails all three retries: `response_status_count/429: 4`. The ceiling is one page
+per run.
+
+**Vishal — a race, now fixed.** It yielded 10 items in this run and 0 the run
+before, with no error either time. Cause: `playwright_page_methods` was passed
+as *tuples*, and scrapy-playwright ignores tuples outright —
+
+```
+WARNING: Ignoring ('wait_for_selector', 'div.product-collection'):
+         expected PageMethod, got <class 'tuple'>
+```
+
+So every `wait_for_selector` in the project had always been skipped, and whether
+a vendor's JS-rendered grid existed at capture time came down to luck. The same
+latent race explains the 26/53/63 counts being stable while Vishal's and PC
+Studio's were not.
+
+**The crash.** Elitehubs also yielded a non-product tile:
+
+```
+{'link': 'https://elitehubs.com/collections/processor?...usf_take=28',
+ 'name': None, 'price': None, 'vendor': 'Elitehubs'}
+```
+
+`Response.urljoin(None)` returns the base URL, so that tile became a row with no
+name and the collection page as its link. It then killed the normalizer and with
+it the whole night's insert. Both ends are now guarded: the spider skips tiles
+without a title, and the normalizer drops nameless rows instead of dying.
+
+### Why a local run sees no Elitehubs
+
+The 429 is per-IP, not global. Same code, same day: the GitHub Actions runner
+collected 26 Elitehubs rows, a home connection collected 0 —
 
 ```
 HTTP/2 429   retry-after: 60   server: cloudflare   x-dc: gcp-asia-southeast1
 body: local_rate_limited
 ```
 
-Forensics that pointed at the IP rather than the code: the block survives a real
-browser (Playwright), survives a plain JSON endpoint, and disappears on a
-different network. No parser change can fix it, and there is nothing to fix while
-the scheduled runner keeps getting data.
+It survives a real browser (Playwright) and a plain JSON endpoint
+(`/collections/processor/products.json` returns the same 18 bytes), so it cannot
+be JavaScript rendering or a selector problem. Nothing in the code fixes a
+blocked IP, and nothing needs fixing while the scheduled runner keeps working.
 
-The dangerous part was never the 429 — it was that the spider returned zero
-items, exited cleanly, and the run still logged `Data inserted successfully`.
-`validation.py` exists to make that case fail loudly instead. If the runner ever
-starts being throttled too, the nightly job goes red rather than quietly
-publishing a short snapshot.
+A local run will therefore fail the vendor check on Elitehubs. That is the
+correct outcome: a local snapshot really is incomplete.
 
 ## Failure detection
 
@@ -181,7 +205,11 @@ level, so `master_script.py` checks every vendor's row count after the insert:
   its catalogue but loses most of it is also wrong. This is the case a floor
   alone misses.
 * **Disappearance** (`EXPECTED_VENDORS`) — a spider that vanishes entirely is
-  reported by name rather than as a silently shorter total.
+  reported by name rather than as a silently shorter total. The list holds the
+  six vendors the runner can actually reach; PC Studio is deliberately excluded
+  because it is blocked there permanently (see *Current status*). It still gets
+  its own `pcstudio: 0 items` warning from the per-spider log line, so nothing
+  is hidden — only the build is not held hostage by a known, unfixable block.
 
 Failures exit non-zero, so the GitHub Actions run goes red and emails, instead of
 completing green with a vendor missing. The check runs *after* the commit, so the

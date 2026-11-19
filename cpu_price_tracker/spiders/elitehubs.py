@@ -1,4 +1,6 @@
 import scrapy
+from scrapy_playwright.page import PageMethod
+
 from cpu_price_tracker.items import CpuPriceTrackerItem
 
 
@@ -15,10 +17,12 @@ class ElitehubsSpider(scrapy.Spider):
             url,
             meta={
                 "playwright": True,
+                # Must be a PageMethod, not a tuple. scrapy-playwright silently
+                # ignores tuples ("expected PageMethod, got <class 'tuple'>"),
+                # so this wait had never actually run.
                 "playwright_page_methods": [
-                    # wait until the product grid is rendered
-                    ("wait_for_selector", "div.product-collection")
-                ]
+                    PageMethod("wait_for_selector", "div.product-collection")
+                ],
             },
         )
 
@@ -31,6 +35,11 @@ class ElitehubsSpider(scrapy.Spider):
 
         for product in products:
             name = product.css("div.product-collection__title a::text").get()
+            if not name:
+                # A grid tile that is not a product (promo banner, spacer).
+                # It used to be yielded with name=None and link=<collection url>,
+                # which later crashed the normalizer and poisoned the table.
+                continue
             link = response.urljoin(product.css("div.product-collection__title a::attr(href)").get())
             price_text = product.css("span.current::text").get()
             price = None
@@ -64,7 +73,7 @@ class ElitehubsSpider(scrapy.Spider):
             meta={
                 "playwright": True,
                 "playwright_page_methods": [
-                    ("wait_for_selector", "div.product-collection")
+                    PageMethod("wait_for_selector", "div.product-collection")
                 ],
             },
         )

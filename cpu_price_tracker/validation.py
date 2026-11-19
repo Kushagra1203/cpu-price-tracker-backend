@@ -23,11 +23,16 @@ MIN_FRACTION_OF_PREVIOUS = 0.6
 
 # Vendors expected to run, used to catch a spider that disappears entirely
 # rather than merely returning few rows.
+# Vendors the scheduled runner must see. PC Studio is deliberately absent: its
+# only two runs from the runner returned HTTP 403 from Cloudflare in well under
+# a second (a block on the runner's IP, not a parser problem), while the same
+# spider still returns 67 rows from a home connection. Leaving it here would
+# make the job fail every single night until a proxy is added, which trains you
+# to ignore the one check that catches real breakage.
 EXPECTED_VENDORS = [
     "Elitehubs",
     "The IT Depot",
     "MDComputers",
-    "PC Studio",
     "Vedant Computers",
     "Vishal Peripherals",
     "Ezpz Solutions",

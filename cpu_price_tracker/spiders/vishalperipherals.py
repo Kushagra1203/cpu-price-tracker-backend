@@ -1,4 +1,6 @@
 import scrapy
+from scrapy_playwright.page import PageMethod
+
 from cpu_price_tracker.items import CpuPriceTrackerItem
 
 class VishalperipheralsSpider(scrapy.Spider):
@@ -20,8 +22,12 @@ class VishalperipheralsSpider(scrapy.Spider):
                 url,
                 meta={
                     "playwright": True,
+                    # PageMethod, not a tuple: scrapy-playwright ignores tuples
+                    # with a warning, so this wait never ran. The availability
+                    # badge this spider filters on is injected by JS, which is
+                    # why every product was being skipped on the runner.
                     "playwright_page_methods": [
-                        ("wait_for_selector", "div.product-collection")
+                        PageMethod("wait_for_selector", "div.product-collection")
                     ]
                 },
             )
@@ -31,9 +37,12 @@ class VishalperipheralsSpider(scrapy.Spider):
         if len(products) == 0:
             self.logger.info("No products found or end of collection reached, stopping.")
             return
+        out_of_stock = 0
+        yielded = 0
         for product in products:
             in_stock = product.css('div.product-collection__availability p.in_stock')
             if not in_stock:
+                out_of_stock += 1
                 continue
 
             name = product.css('div.product-collection__title a::text').get()
@@ -58,7 +67,13 @@ class VishalperipheralsSpider(scrapy.Spider):
             item['price'] = price
             item['vendor'] = 'Vishal Peripherals'
 
+            yielded += 1
             yield item
+
+        self.logger.info(
+            "Vishal: %d product tiles, %d skipped (no in-stock badge), %d yielded",
+            len(products), out_of_stock, yielded,
+        )
 
         # Pagination with stop condition - check for next page link
         next_page_link = response.css("a.pagination__next::attr(href), a.next::attr(href), link[rel='next']::attr(href)").get()
@@ -69,7 +84,7 @@ class VishalperipheralsSpider(scrapy.Spider):
                 meta={
                     "playwright": True,
                     "playwright_page_methods": [
-                        ("wait_for_selector", "div.product-collection")
+                        PageMethod("wait_for_selector", "div.product-collection")
                     ]
                 }
             )
