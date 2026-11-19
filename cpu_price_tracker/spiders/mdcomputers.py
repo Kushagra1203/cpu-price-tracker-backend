@@ -1,12 +1,23 @@
 """MDComputers -- 62 processors across 4 pages of 20.
 
 The listing prints its own size ("Showing 1 to 20 of 62 (4 Pages)"), so the
-spider knows the target before it starts and says how close it got. Previously
-the only signal was the total row count, which cannot distinguish "sold out
-today" from "the pagination silently stopped".
+spider knows the target before it starts and says how close it got.
+
+Fetched through Playwright. A plain HTTP request works from a residential
+connection but the 2026-11-19 run got HTTP 403 on page 1 from the GitHub
+runner, while the same URL answered 200 from home with both a Chrome and a
+Firefox user agent. A UA string cannot fix that: the runner's IP carries a
+worse reputation and Scrapy's TLS fingerprint is not a browser's. A real
+Chromium presents both, which is how Elitehubs and Vishal already survive
+Cloudflare from the same runner.
+
+The grid is server-rendered, so the wait has nothing to do with JavaScript
+rendering -- it is there so the capture happens after Cloudflare has either
+served the page or refused it, instead of scraping a challenge body.
 """
 
 import scrapy
+from scrapy_playwright.page import PageMethod
 
 from cpu_price_tracker.items import CpuPriceTrackerItem
 from cpu_price_tracker.listing import parse_showing_total
@@ -22,10 +33,6 @@ class mdcomputerSpider(scrapy.Spider):
 
     custom_settings = {
         "DOWNLOAD_DELAY": 2,
-        "USER_AGENT": (
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-        ),
     }
 
     def __init__(self, *args, **kwargs):
@@ -35,10 +42,19 @@ class mdcomputerSpider(scrapy.Spider):
         self.collected = 0
 
     def start_requests(self):
-        yield scrapy.Request(
-            PAGE_URL.format(page=1),
+        yield self.page_request(1)
+
+    def page_request(self, page):
+        return scrapy.Request(
+            PAGE_URL.format(page=page),
             callback=self.parse,
-            cb_kwargs={"page": 1},
+            cb_kwargs={"page": page},
+            meta={
+                "playwright": True,
+                "playwright_page_methods": [
+                    PageMethod("wait_for_selector", "div.product-wrapper", timeout=20000)
+                ],
+            },
         )
 
     def parse(self, response, page):
@@ -94,8 +110,4 @@ class mdcomputerSpider(scrapy.Spider):
             return
 
         if page < MAX_PAGES:
-            yield scrapy.Request(
-                PAGE_URL.format(page=page + 1),
-                callback=self.parse,
-                cb_kwargs={"page": page + 1},
-            )
+            yield self.page_request(page + 1)

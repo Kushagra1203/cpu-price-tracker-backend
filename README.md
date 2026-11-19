@@ -118,18 +118,23 @@ Every count below is the vendor's own, read off the page or the API — not a
 number typed in by hand. That distinction is the point: a hard-coded expected
 count rots the moment a vendor adds a CPU, while the site's banner cannot.
 
-| Vendor | Site's own count | Last run | Spider |
+| Vendor | Site's own count | 2026-11-19 run | Spider |
 |---|---|---|---|
-| MDComputers | 62 — `Showing 1 to 20 of 62 (4 Pages)` | 62 ✅ | page walk, stops at the stated page count |
-| The IT Depot | 53 — `Showing 1 to 12 of 53 (5 Pages)` | 0 ⚠️ | page walk, throttled |
+| MDComputers | 62 — `Showing 1 to 20 of 62 (4 Pages)` | 0 ⚠️ 403 → Playwright | page walk, stops at the stated page count |
+| The IT Depot | 53 — `Showing 1 to 12 of 53 (5 Pages)` | 53 ✅ | page walk, throttled |
 | Vedant Computers | 41 — `Showing 1 to 41 of 41 (1 Pages)` | 41 ✅ | one request, `limit=100` |
 | Ezpz Solutions | 43 | 43 ✅ | page walk |
-| Elitehubs | 50 in stock | 21 ⚠️ | one request, `usf_take=100` |
-| Vishal Peripherals | 46 — `46 of 141 products` | 10 ⚠️ | filtered search URL, 3 pages |
-| PC Studio | 67 — Store API `count: 67` | 0 ❌ | Store API JSON |
-| Computech Store | 101 — 6 pages of 20 | — | page walk, stops on repeated links |
-| SCL Gaming | 70 in stock, all priced, of 213 | — | page walk, keeps `instock` cards only |
-| Shweta Computers | n/a — set has no total | — | Shopify `products.json`, available variants only |
+| Elitehubs | 50 in stock | 24 ⚠️ | one request, `usf_take=56` |
+| Vishal Peripherals | 46 — `46 of 141 products` | 46 ✅ | filtered search URL, 3 pages |
+| PC Studio | 67 — Store API `count: 67` | 0 ❌ 403 on `/wp-json/` too | Store API JSON |
+| Computech Store | 101 — 6 pages of 20 | 101 ✅ | page walk, stops on repeated links |
+| SCL Gaming | 70 in stock, all priced, of 213 | 0 ⚠️ 403 → Playwright | keeps `instock` cards only |
+| Shweta Computers | n/a — set has no total | 81 ✅ | Shopify `products.json` |
+
+That run merged 389 raw rows and inserted 378: the other 11 were names the
+normalizer could not match against `cpu_data.csv` (`Matched 378, Unmatched 11`),
+not crawler losses. It is also why vendor totals can differ slightly from the
+per-spider counts — Computech scraped 101 and contributed 99, Shweta 81 → 73.
 
 Each spider now logs `collected N of M`, so a short run names its own deficit
 in the log instead of leaving the total row count to be trusted.
@@ -143,11 +148,18 @@ delay, which tripped the site's LiteSpeed rate limiter (`response_status_count
 later. It now runs at one request every 3s with AutoThrottle and stops at the
 page count the banner states, instead of guessing from an empty response.
 
-**Elitehubs — 21 of 50.** `usf_take` is how many tiles the collection renders
-in one response. It was 28, so the spider saw 21-26 of the 50 in-stock
-processors; asking for a second page earned a 307 followed by four 429s
-(`response_status_count/429: 4`). It now asks for 100 in the single request the
-site will serve, and only paginates if that page comes back full.
+**Elitehubs — 24 of 50.** `usf_take` is how many tiles the collection renders
+in one response. At 28 the spider saw 21-26 of the 50 in-stock processors, and
+asking for a second page earned a 307 followed by four 429s
+(`response_status_count/429: 4`).
+
+Raising it to 100 did not help: that appears to exceed the filter app's maximum
+and it falls back to its own default page of 24. Worse, the app rewrites the
+address bar with `history.replaceState` after load and drops `usf_take`, so the
+spider's own `response.url` no longer contained the value it had asked for and
+the crawl stopped after one page with `Could not parse usf_take ... Stopping`.
+It now asks for 56 -- verified in a browser to render all 50 -- and carries the
+value through `cb_kwargs` instead of reading it back out of the URL.
 
 **Vishal Peripherals — 10 of 46.** The spider was reading
 `/collections/processors?page=N`, which shows 20 tiles of which half are out of
@@ -171,11 +183,15 @@ document. The storefront is WooCommerce, though, and WooCommerce publishes a
 public Store API — `/wp-json/wc/store/v1/products?category=113&per_page=100`
 returns the same catalogue as JSON (name, permalink, price, `is_in_stock`).
 Category 113 is the Processor term, confirmed via
-`/wp-json/wc/store/v1/products/categories?slug=processor` (`count: 67`). The
-spider now reads that route: one request, 67 rows, no browser. Whether the
-runner's IP is challenged on `/wp-json/` too is the open question — the spider
-logs the status and payload head rather than crashing, so the answer arrives in
-the next run log.
+`/wp-json/wc/store/v1/products/categories?slug=processor` (`count: 67`).
+
+The 2026-11-19 run answered that: the JSON route is blocked too, with the same
+immediate 403 (`GET /wp-json/wc/store/v1/products?category=113&per_page=100 →
+403`). So this is not a Cloudflare HTML challenge that a browser could solve —
+it is the IP, on every route. The same spider returns all 67 rows from a home
+connection. It stays in the repo and keeps logging its 403 every run, but it is
+out of `EXPECTED_VENDORS` until it can be given a proxy, which is the only thing
+that changes this.
 
 **Computech Store — new, 101 products.** A custom Tailwind/htmx storefront, not
 WooCommerce (every `/wp-json/` route is 404), so it is scraped from the grid at
@@ -274,7 +290,7 @@ level, so `master_script.py` checks every vendor's row count after the insert:
   alone misses.
 * **Disappearance** (`EXPECTED_VENDORS`) — a spider that vanishes entirely is
   reported by name rather than as a silently shorter total. The list holds the
-  eight vendors the runner must always produce. PC Studio is excluded while its
+  nine vendors the runner must always produce. PC Studio is excluded while its
   new Store API route is unproven from the runner: if the block extends to
   `/wp-json/`, keeping it expected would fail the job every night for a cause no
   code change can fix, which is how a useful alert turns into wallpaper. It is

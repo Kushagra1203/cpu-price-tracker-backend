@@ -25,6 +25,7 @@ are deduplicated before they are counted or yielded.
 import re
 
 import scrapy
+from scrapy_playwright.page import PageMethod
 
 from cpu_price_tracker.items import CpuPriceTrackerItem
 
@@ -58,10 +59,20 @@ class SclgamingSpider(scrapy.Spider):
         yield self.page_request(1)
 
     def page_request(self, page):
+        # Playwright for the same reason as MDComputers: plain HTTP gets 200
+        # from a residential connection but the 2026-11-19 runner run was
+        # answered 403 on page 1, and a user-agent string does not change an
+        # IP reputation or Scrapy's TLS fingerprint.
         return scrapy.Request(
             PAGE_URL.format(page=page),
             callback=self.parse,
             cb_kwargs={"page": page},
+            meta={
+                "playwright": True,
+                "playwright_page_methods": [
+                    PageMethod("wait_for_selector", "div.e-loop-item", timeout=20000)
+                ],
+            },
         )
 
     def parse(self, response, page):
