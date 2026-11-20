@@ -319,13 +319,13 @@ level, so `master_script.py` checks every vendor's row count after the insert:
   alone misses.
 * **Disappearance** (`EXPECTED_VENDORS`) — a spider that vanishes entirely is
   reported by name rather than as a silently shorter total. The list holds the
-  nine vendors the runner must always produce. PC Studio is excluded: both
-  hosted IP pools are proven refused on every route, so keeping it expected
-  would fail the job every night for a cause no code change can fix, which is
-  how a useful alert turns into wallpaper — its rows come from the local
-  nightly run instead. SCL Gaming is still in the list, which keeps the
-  runner build red every night for the same unfixable cause; moving it out is
-  a deliberate product decision, not a code one.
+  eight vendors the runner can actually reach. SCL Gaming and PC Studio are
+  excluded because both hosted IP pools are proven refused on every route
+  (Store API included), so keeping them expected would fail the job every
+  night for a cause no code change can fix, which is how a useful alert turns
+  into wallpaper. Their rows come from the local nightly run, which runs the
+  same check over all ten vendors. Their runner logs still print a
+  `0 items` line, so they are named, not hidden.
 
 Failures exit non-zero, so the GitHub Actions run goes red and emails, instead of
 completing green with a vendor missing. The check runs *after* the commit, so the

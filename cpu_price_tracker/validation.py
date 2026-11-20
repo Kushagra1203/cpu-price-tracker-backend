@@ -21,16 +21,18 @@ MIN_ROWS_PER_VENDOR = 3
 # A vendor must keep at least this share of its previous run's rows.
 MIN_FRACTION_OF_PREVIOUS = 0.6
 
-# Vendors the scheduled runner must see.
+# Vendors the scheduled runner must see: the eight it can actually reach.
 #
-# PC Studio is deliberately absent for now: from the runner it must cross
-# Cloudflare, and until 2026-11-19 every attempt returned HTTP 403 in under a
-# second (an IP-level block, not a parser bug) while the same spider returned
-# 67 rows from a home connection. The spider now reads WooCommerce's public
-# Store API instead of the HTML page, which may not be challenged; it is added
-# back here once a runner run actually reports its 67 rows. Until then its
-# per-spider "0 items" line still names it every night, so nothing is hidden --
-# only the build is not held red for a cause no code change can fix.
+# SCL Gaming and PC Studio are deliberately absent. Both 403 on every route
+# from both hosted IP pools (Store API included, measured 2026-11-19/20) while
+# producing full row counts from a residential connection, so no runner change
+# reaches them and no code fix exists. Their rows come from the local nightly
+# run instead. Keeping them here would hold the build red every night for a
+# cause nothing can fix, which is how a real alert turns into wallpaper.
+#
+# The check stays meaningful because both vendors' spiders still log their own
+# "0 items" line on every runner run, and the local run's own pass/fail check
+# covers them there.
 EXPECTED_VENDORS = [
     "Elitehubs",
     "The IT Depot",
@@ -39,7 +41,6 @@ EXPECTED_VENDORS = [
     "Vishal Peripherals",
     "Ezpz Solutions",
     "Computech Store",
-    "SCL Gaming",
     "Shweta Computers",
 ]
 
