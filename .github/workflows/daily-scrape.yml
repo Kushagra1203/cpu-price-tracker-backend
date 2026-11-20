@@ -7,16 +7,10 @@ on:
 
 jobs:
   scrape:
-    # Windows, not ubuntu. Measured on 2026-11-19/20: GitHub's two hosted
-    # pools differ at the vendors' edges. Shweta answered 200-first-try with
-    # 81 rows on the Windows pool twice, while the Ubuntu pool drew 429 seven
-    # times in the same hour (Shopify's per-IP budget on the shared pool).
-    # SCL Gaming and PC Studio 403 identically on both pools -- their
-    # Cloudflare rules refuse both IP ranges on every route -- so they are
-    # fed by the local nightly run instead (see cron + README). The full
-    # pipeline was verified on windows-latest first: 32 tests pass, the
-    # MySQL insert with the CA cert works, and the frontend push is
-    # unchanged. Costs 2x minutes (~5 min/night); well inside the free tier.
+    # Windows, not ubuntu: Shopify's per-IP budget is usually already spent on
+    # the shared Ubuntu egress pool, so Shweta draws 429s there and 200s here.
+    # SCL Gaming and PC Studio refuse both hosted pools and are covered by the
+    # local cron instead.
     runs-on: windows-latest
     timeout-minutes: 60
     defaults:
