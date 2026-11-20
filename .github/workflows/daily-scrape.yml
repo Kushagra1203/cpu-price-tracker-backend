@@ -7,12 +7,21 @@ on:
 
 jobs:
   scrape:
-    # Pinned, not ubuntu-latest. `ubuntu-latest` rolled forward to 26.04 and
-    # Playwright 1.54 refuses to install chromium there ("Playwright does not
-    # support chromium on ubuntu26.04-x64"), which failed this job every night
-    # from 2026-11-12 onward at the "Install dependencies" step.
-    runs-on: ubuntu-24.04
+    # Windows, not ubuntu. Measured on 2026-11-19/20: GitHub's two hosted
+    # pools differ at the vendors' edges. Shweta answered 200-first-try with
+    # 81 rows on the Windows pool twice, while the Ubuntu pool drew 429 seven
+    # times in the same hour (Shopify's per-IP budget on the shared pool).
+    # SCL Gaming and PC Studio 403 identically on both pools -- their
+    # Cloudflare rules refuse both IP ranges on every route -- so they are
+    # fed by the local nightly run instead (see cron + README). The full
+    # pipeline was verified on windows-latest first: 32 tests pass, the
+    # MySQL insert with the CA cert works, and the frontend push is
+    # unchanged. Costs 2x minutes (~5 min/night); well inside the free tier.
+    runs-on: windows-latest
     timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
     env:
       DB_HOST: ${{ secrets.DB_HOST }}
       DB_PORT: ${{ secrets.DB_PORT }}
@@ -30,9 +39,11 @@ jobs:
           cache: pip
 
       - name: Install dependencies
+        # --with-deps is apt-based (linux only); on Windows the pip package
+        # plus the browser download is all that is needed.
         run: |
           pip install -r requirements.txt
-          playwright install --with-deps chromium
+          python -m playwright install chromium
 
       - name: Run tests
         run: python -m unittest discover -s tests -t . -v

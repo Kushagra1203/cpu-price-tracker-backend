@@ -5,6 +5,17 @@ import os
 import subprocess
 import sys
 
+# mysql-connector-python 9.4 references ssl.PROTOCOL_TLSv1 at import time.
+# Python 3.15 removed those constants, which would kill this script on any
+# machine running it -- the local nightly run does, the pinned runner (3.12)
+# does not. The constants only matter for long-dead TLS versions, so aliasing
+# them to the modern default is safe, and this is a no-op on the runner.
+import ssl as _ssl
+
+for _name in ("PROTOCOL_TLSv1", "PROTOCOL_TLSv1_1", "PROTOCOL_TLSv1_2"):
+    if not hasattr(_ssl, _name):
+        setattr(_ssl, _name, _ssl.PROTOCOL_TLS_CLIENT)
+
 import mysql.connector
 from dotenv import load_dotenv
 
