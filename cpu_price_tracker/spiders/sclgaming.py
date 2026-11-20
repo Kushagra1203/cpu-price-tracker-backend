@@ -7,13 +7,26 @@ no badge); the only signal is each card's "instock"/"outofstock" class.
 import re
 
 import scrapy
+from playwright.async_api import TimeoutError as PlaywrightTimeout
 from scrapy_playwright.page import PageMethod
 
-from cpu_price_tracker.browser import wait_for_selector_or_none
 from cpu_price_tracker.items import CpuPriceTrackerItem
 
 PAGE_URL = "https://sclgaming.in/product-category/processor/page/{page}/"
 MAX_PAGES = 25
+
+
+async def _wait_for_grid(page):
+    """Wait for the product grid, but never raise.
+
+    The plain ``PageMethod("wait_for_selector", ...)`` raises on timeout, and
+    scrapy-playwright then throws the whole response away -- taking the HTTP
+    status with it, which is the only thing that explains a block.
+    """
+    try:
+        await page.wait_for_selector("div.e-loop-item", state="attached", timeout=15000)
+    except PlaywrightTimeout:
+        pass
 
 
 class SclgamingSpider(scrapy.Spider):
@@ -44,9 +57,7 @@ class SclgamingSpider(scrapy.Spider):
             cb_kwargs={"page": page},
             meta={
                 "playwright": True,
-                "playwright_page_methods": [
-                    PageMethod(wait_for_selector_or_none, "div.e-loop-item", 15000)
-                ],
+                "playwright_page_methods": [PageMethod(_wait_for_grid)],
             },
         )
 
