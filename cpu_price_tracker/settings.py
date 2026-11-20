@@ -119,35 +119,15 @@ PLAYWRIGHT_LAUNCH_OPTIONS = {
 # hangs the spider for the whole job.
 PLAYWRIGHT_DEFAULT_NAVIGATION_TIMEOUT = 30000
 
-# Two browser policies were tried on 2026-11-19 and both are recorded here so
-# they are not retried on a hunch.
-#
-# PLAYWRIGHT_PROCESS_REQUEST_HEADERS = None -- let the browser send its own
-# headers instead of Scrapy's (a Chromium 139 announcing itself as Firefox
-# 128). Reverted: it was changed in the same run as the policy below, so the
-# run could not say which of the two caused what, and the known-good state
-# is the default.
-#
-# PLAYWRIGHT_ABORT_REQUEST = "cpu_price_tracker.browser.abort_request" --
-# stop the browser fetching assets no spider reads. One MDComputers listing
-# page pulls 90 requests for 20 products, which reads as waste, and the
-# first attempt dropped everything but the document on that host. It took
-# MDComputers from 23 rows to 0: the 403 page Cloudflare serves carries
-# cdn-cgi/challenge-platform/scripts/jsd/main.js, its JavaScript bot
-# detection, and that spider had blocked every script on the host. Cloudflare
-# runs that script on every page it serves, blocked or not, and a page with
-# no JavaScript signals at all scores as a bot.
-
 # Other settings
 DOWNLOAD_DELAY = 3
 COOKIES_ENABLED = True
 RETRY_ENABLED = True
 RETRY_TIMES = 3
 
-# 429 is an explicit "you are going too fast", not a transient error. elitehubs
-# answers with `429 local_rate_limited` and `Retry-After: 60` from Cloudflare
-# when the request rate is too high, which used to yield an empty result set
-# that the pipeline recorded as a successful run.
+# 429 is an explicit "you are going too fast", not a transient error. Scrapy
+# does not retry it by default, which used to turn a rate limit into an empty
+# result set that the pipeline recorded as a successful run.
 RETRY_HTTP_CODES = [408, 429, 500, 502, 503, 504, 522, 524]
 
 # Throttle automatically instead of hammering a vendor into a rate limit.
@@ -155,15 +135,3 @@ AUTOTHROTTLE_ENABLED = True
 AUTOTHROTTLE_START_DELAY = 5
 AUTOTHROTTLE_MAX_DELAY = 60
 AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
-
-# Scrapy has no per-request download delay -- request.meta["download_delay"]
-# is not read by the downloader -- but it does have per-slot settings, and a
-# request chooses its slot with request.meta["download_slot"]. MDComputers
-# gets a slow, strictly serial slot of its own: page 1 was answered 200 and
-# page 2 was refused with 403 in 0.2 s from the same browser session on
-# 2026-11-19, so the site's WAF does not like its request pattern, and a
-# refused page is asked again after the same 30 s rather than ending the
-# crawl.
-DOWNLOAD_SLOTS = {
-    "md-slow": {"concurrency": 1, "delay": 30},
-}
