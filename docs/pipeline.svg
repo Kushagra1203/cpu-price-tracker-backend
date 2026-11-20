@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1350 280" width="1350" height="280">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8c959f"/>
+    </marker>
+    <style>
+      .box   { fill:#f6f8fa; stroke:#d0d7de; stroke-width:1.2; }
+      .lid   { fill:#eaeef2; stroke:#d0d7de; stroke-width:1.2; }
+      .flow  { fill:none; stroke:#8c959f; stroke-width:1.4; }
+      .t     { font-family:'Cantarell','Noto Sans',sans-serif; fill:#1f2328;
+               font-size:17px; font-weight:600; text-anchor:middle; }
+      .s     { font-family:'Cantarell','Noto Sans',sans-serif; fill:#57606a;
+               font-size:12.5px; font-weight:400; text-anchor:middle; }
+      .m     { font-family:'JetBrains Mono','Cantarell',monospace; fill:#1f2328;
+               font-size:14px; font-weight:500; text-anchor:middle; }
+    </style>
+  </defs>
+
+  <rect width="1350" height="280" fill="#ffffff"/>
+
+  <rect class="box" x="20" y="46" width="180" height="58" rx="8"/>
+  <text class="t" x="110" y="72">GitHub Actions</text>
+  <text class="s" x="110" y="90">daily · 21:00 IST</text>
+
+  <rect class="box" x="20" y="176" width="180" height="58" rx="8"/>
+  <text class="t" x="110" y="202">local cron</text>
+  <text class="s" x="110" y="220">daily · 21:30 IST</text>
+
+  <rect class="box" x="240" y="109" width="160" height="62" rx="8"/>
+  <text class="m" x="320" y="146">master_script.py</text>
+
+  <rect class="box" x="424" y="109" width="124" height="62" rx="8"/>
+  <text class="t" x="486" y="136">10 spiders</text>
+  <text class="s" x="486" y="154">3 at a time</text>
+
+  <rect class="box" x="572" y="109" width="136" height="62" rx="8"/>
+  <text class="t" x="640" y="136">merge</text>
+  <text class="s" x="640" y="154">dedupe by link</text>
+
+  <rect class="box" x="732" y="109" width="152" height="62" rx="8"/>
+  <text class="t" x="808" y="136">normalize</text>
+  <text class="s" x="808" y="154">cpu_data.csv</text>
+
+  <path class="box" d="M912,49 A80,10 0 0 1 1072,49 L1072,99 A80,10 0 0 1 912,99 Z"/>
+  <ellipse class="lid" cx="992" cy="49" rx="80" ry="10"/>
+  <text class="m" x="992" y="83">cpu_prices</text>
+
+  <path class="box" d="M912,181 A80,10 0 0 1 1072,181 L1072,231 A80,10 0 0 1 912,231 Z"/>
+  <ellipse class="lid" cx="992" cy="181" rx="80" ry="10"/>
+  <text class="m" x="992" y="215">price_history</text>
+
+  <rect class="box" x="1096" y="109" width="120" height="62" rx="8"/>
+  <text class="t" x="1156" y="146">export JSON</text>
+
+  <rect class="box" x="1240" y="109" width="96" height="62" rx="8"/>
+  <text class="t" x="1288" y="136">frontend</text>
+  <text class="s" x="1288" y="154">repo</text>
+
+  <path class="flow" d="M200,75 H215 V140 H240" marker-end="url(#arrow)"/>
+  <path class="flow" d="M200,205 H215 V140 H240" marker-end="url(#arrow)"/>
+  <path class="flow" d="M400,140 H424" marker-end="url(#arrow)"/>
+  <path class="flow" d="M548,140 H572" marker-end="url(#arrow)"/>
+  <path class="flow" d="M708,140 H732" marker-end="url(#arrow)"/>
+  <path class="flow" d="M884,140 H898 V74 H912" marker-end="url(#arrow)"/>
+  <path class="flow" d="M884,140 H898 V206 H912" marker-end="url(#arrow)"/>
+  <path class="flow" d="M1072,74 H1084 V140 H1096" marker-end="url(#arrow)"/>
+  <path class="flow" d="M1072,206 H1084 V140 H1096" marker-end="url(#arrow)"/>
+  <path class="flow" d="M1216,140 H1240" marker-end="url(#arrow)"/>
+</svg>

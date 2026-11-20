@@ -12,19 +12,7 @@ builds it: one row per listing per day, queryable by model, vendor, and date.
 
 ## Pipeline
 
-```mermaid
-flowchart LR
-  A[GitHub Actions<br/>21:00 IST, daily] --> C[master_script.py]
-  B[local cron<br/>21:30 IST] --> C
-  C --> D[10 spiders<br/>3 at a time]
-  D --> E[merge + dedupe by link]
-  E --> F[normalize<br/>cpu_data.csv]
-  F --> G[(cpu_prices)]
-  F --> H[(price_history)]
-  G --> I[export JSON]
-  H --> I
-  I --> J[frontend repo]
-```
+![Pipeline: two schedulers start master_script.py, which runs ten spiders, merges and dedupes their output, normalizes names against cpu_data.csv, writes cpu_prices and price_history, then exports JSON to the frontend repo](docs/pipeline.png)
 
 1. **Scrape** — one `scrapy crawl` subprocess per vendor, up to three in
    parallel. Process isolation means a hung browser or a crashing spider cannot
