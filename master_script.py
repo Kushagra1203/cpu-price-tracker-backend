@@ -197,10 +197,6 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_PARALLEL_SPIDERS) as 
         results[result["spider"]] = result
         report(result)
 
-for spider, _ in spider_to_json:
-    if spider not in results:
-        logger.error("%s: never ran", spider)
-
 logger.info(
     "Spider totals (raw items): "
     + ", ".join(
