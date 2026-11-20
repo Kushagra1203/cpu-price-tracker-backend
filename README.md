@@ -1,6 +1,6 @@
 # CPU Price Tracker — Backend
 
-A daily ETL pipeline that tracks desktop CPU prices across **7 Indian PC-hardware
+A daily ETL pipeline that tracks desktop CPU prices across **10 Indian PC-hardware
 retailers**, normalizes product names against a curated specs dictionary, and stores
 both the **current snapshot** and an **append-only price history** in a cloud MySQL
 database.
@@ -118,113 +118,48 @@ Every count below is the vendor's own, read off the page or the API — not a
 number typed in by hand. That distinction is the point: a hard-coded expected
 count rots the moment a vendor adds a CPU, while the site's banner cannot.
 
-| Vendor | Site's own count | 2026-11-19 15:25 | 2026-11-19 15:46 | Spider |
+| Vendor | Site's own count | runner (Windows pool) | local (home IP) | Spider |
 |---|---|---|---|---|
-| MDComputers | 62 — `Showing 1 to 20 of 62 (4 Pages)` | 0 ⚠️ 403 | 0 ⚠️ our bug, fixed | page walk, stops at the stated page count |
-| The IT Depot | 53 — `Showing 1 to 12 of 53 (5 Pages)` | 53 ✅ | 53 ✅ | page walk, throttled |
+| MDComputers | 63 — `Showing 1 to 20 of 63 (4 Pages)` | 63 ✅ | 63 ✅ | plain HTML, banner drives pagination |
+| The IT Depot | 53 — `Showing 1 to 12 of 53 (5 Pages)` | 53 ✅ | 53 ✅ | plain HTML, banner stop, 3 s delay |
 | Vedant Computers | 41 — `Showing 1 to 41 of 41 (1 Pages)` | 41 ✅ | 41 ✅ | one request, `limit=100` |
-| Ezpz Solutions | 43 | 43 ✅ | 43 ✅ | page walk |
-| Elitehubs | 50 in stock | 24 ⚠️ | 22 ⚠️ | one request, `usf_take=56` |
-| Vishal Peripherals | 46 — `46 of 141 products` | 46 ✅ | 46 ✅ | filtered search URL, 3 pages |
-| PC Studio | 67 — Store API `count: 67` | 0 ❌ 403 on `/wp-json/` too | 0 ❌ same | Store API JSON |
-| Computech Store | 101 — 6 pages of 20 | 101 ✅ | 101 ✅ | page walk, stops on repeated links |
-| SCL Gaming | 70 in stock, all priced, of 213 | 0 ⚠️ 403 | 0 ❌ 403 through Chromium too | keeps `instock` cards only |
-| Shweta Computers | n/a — set has no total | 81 ✅ | 0 ⚠️ 429, backoff too short | Shopify `products.json` |
+| Ezpz Solutions | 43 | 43 ✅ | 43 ✅ | plain HTML, next-page link |
+| Elitehubs | 50 in stock | 50 ✅ | 50 ✅ | storefront search API, self-reported total |
+| Vishal Peripherals | 46 — `46 of 141 products` | 42 ✅ | 42 ✅ | Shopify search, availability filter |
+| Shweta Computers | n/a — set has no total | 73 ✅ | 81 ✅ | Shopify `products.json` |
+| Computech Store | 101 — 6 pages of 20 | 101 ✅ | 101 ✅ | plain HTML, stops on repeated links |
+| SCL Gaming | 70 in stock, all priced, of 213 | 0 ❌ edge-blocked | 70 ✅ | local nightly feeds it |
+| PC Studio | 67 — Store API `count: 67` | 0 ❌ edge-blocked | 67 ✅ | Store API JSON, local nightly feeds it |
 
-The 15:25 run merged 389 raw rows and inserted 378: the other 11 were names the
-normalizer could not match against `cpu_data.csv` (`Matched 378, Unmatched 11`),
-not crawler losses. It is also why vendor totals can differ slightly from the
-per-spider counts — Computech scraped 101 and contributed 99, Shweta 81 → 73.
-
-The 15:46 run was the re-run that tested the fixes above. It merged 306 raw
-rows, of which 303 matched a CPU in `cpu_data.csv` (`Matched 303,
-Unmatched 3`). Three of its four problems are diagnosed below; the fourth is
-that two runs twenty minutes apart is enough to burn the runner's shared IP
-budget on Shopify, which is a real constraint rather than a code fault.
+Every row the runner cannot reach is filled by a second nightly run on the
+home network: the GitHub job (21:00 IST, Windows pool) produces 8 of the 10
+vendors, and a local cron (21:30 IST) runs the same pipeline from a
+residential IP, where all 10 answer. The two runs merge harmlessly:
+`price_history` is `INSERT IGNORE` per (vendor, link, date) and `cpu_prices`
+upserts, so whichever run reaches a vendor first wins and the other fills
+only the gaps.
 
 Each spider now logs `collected N of M`, so a short run names its own deficit
 in the log instead of leaving the total row count to be trusted.
 
 ### Why each vendor is short, and what changed
 
-**MDComputers — 403 from the runner, then 0 rows from a bad wait.** From a
-residential connection the listing answers 200; from the runner it answered 403
-on page 1 with a Chrome *and* a Firefox user agent, while the `Scrapy/2.13.3`
-agent is refused from every IP. That rules out the selectors and rules out a
-user-agent fix, so the spider now renders through Playwright, which is how
-Elitehubs and Vishal already get through Cloudflare from the same runner.
+**MDComputers — the spider was never broken; a rewrite was.** The honest
+record, from the database: 33 consecutive days of 61–66 rows, including 62
+items scraped *by the GitHub runner* at 14:02 on 2026-11-19 — six hours
+before the first failure ever logged for this vendor. The failures started
+with the first run of a rewritten spider that claimed Chrome in its user
+agent while sending Scrapy's own TLS fingerprint, which is exactly the
+mismatch Cloudflare flags. The rewrite also read the *rendered* DOM, where
+the page's JavaScript leaves stale tiles behind: a page that says 20 products
+rendered 23, with one CPU duplicated and another missing entirely. Reading
+the server's HTML is what makes the per-page count come out exactly right.
 
-The first Playwright run then produced 0 rows for a second, self-inflicted
-reason. `wait_for_selector` defaults to `state="visible"`, the page contained
-23 `div.product-wrapper` elements, and the first of them is hidden — so the
-wait timed out after 20 s and scrapy-playwright discarded a page that had
-loaded perfectly:
-
-```
-locator resolved to 23 elements. Proceeding with the first one:
-  <div class="product-wrapper">…</div>
-Page.wait_for_selector: Timeout 20000ms exceeded.
-```
-
-It now waits for `state="attached"`. The lesson is in the log line: a selector
-that *resolves* and a selector that *passes* are different questions.
-
-**MDComputers — 23 of 62, and the honest history of "63".** The 16:12 run got
-past the wait and pulled 23 rows, which is *fewer* than the 63 the
-2026-11-18 run produced — and the run before that, in this repo, got 0. The
-spider code was identical for the 63 → 0 transition, so what moved was the
-site: MD's Cloudflare started refusing plain Scrapy from the runner's IP
-sometime between 18 and 19 November, while still answering 200 from a
-residential connection. The old 63 was never a target either — the site's own
-banner says **62**, and 63 means one extra row slipped in. Chasing the
-previous run's number would have meant chasing the wrong one.
-
-The 16:12 log says where the missing 39 went:
-
-```
-16:13:16  Response: <200 https://mdcomputers.in/catalog/processor?page=1>
-16:13:21  Response: <403 https://mdcomputers.in/catalog/processor?page=2>
-```
-
-Page 1 passed, page 2 was refused, from the same browser, in the same session.
-
-Two fixes were built from that, and the next run (17:40) showed that one of
-them was wrong:
-
-- **Blocking the assets was a mistake, and it cost the vendor.** One listing
-  page pulls 90 requests for 20 products — 30 scripts, 20 stylesheets, 40
-  images — which reads as waste, and the grid is server-rendered anyway, so
-  the first attempt dropped every request that was not the document on that
-  host. MDComputers went from 23 rows to 0. The 17:40 log shows why: the 403
-  body Cloudflare serves loads
-  `cdn-cgi/challenge-platform/scripts/jsd/main.js` — its JavaScript bot
-  detection — and that spider had blocked every script on the host.
-  Cloudflare runs that script on every page it serves, and a page with no
-  JavaScript signals at all scores as a bot. The policy is reverted; the
-  reasoning is kept in `settings.py` so it is not retried on a hunch.
-- **Letting the browser send its own headers** (`PLAYWRIGHT_PROCESS_REQUEST_
-  HEADERS = None`, a Chromium 139 announcing itself as Firefox 128) was
-  changed in the same run, so that run cannot say which of the two caused
-  what. It is reverted too, for the same reason: get back to the one
-  configuration that is known to pass page 1, and change one thing at a
-  time after that.
-
-What survives from that run, and what is still in place:
-
-- `wait_for_selector` does not raise, so a refusal is logged as `HTTP 403`
-  instead of masquerading as a 20-second timeout. That log line is what
-  diagnosed the whole thing.
-- A refused page is asked again through a slow download slot
-  (`DOWNLOAD_SLOTS` + `request.meta["download_slot"]`), instead of ending
-  the crawl at whatever page it stopped on. Scrapy has no per-request
-  download delay — `request.meta["download_delay"]` is not read by the
-  downloader — so the slot is the supported way to do it.
-- The selector is scoped to the listing grid. The page carries a 21st
-  `product-wrapper` outside it (a hidden template) and its JavaScript
-  injects two more — that is how 23 tiles came off a page that says 20.
-- Each page is checked against the banner's own range
-  (`Showing 21 to 40 of 62`), so a short page is named in the log rather
-  than only noticed in the total.
+Both changes were reverted. The spider is back to the original 42-line
+plain-HTML version, and the runner run of 2026-11-19 22:26 UTC produced 63 of
+63 through it. The wrong theory — "the runner's IP is blocked" — cost two
+days here, and it is kept in this section on purpose: the next plausible
+story about a vendor failing deserves the same check against history first.
 
 **The IT Depot — 0 rows, then 53.** Not a parser problem: the five listing
 pages are ~1 MB of HTML each and the spider fetched them back to back with no
@@ -233,29 +168,17 @@ delay, which tripped the site's LiteSpeed rate limiter (`response_status_count
 later. It now runs at one request every 3s with AutoThrottle and stops at the
 page count the banner states, instead of guessing from an empty response.
 
-**Elitehubs — 24 of 50.** `usf_take` is how many tiles the collection renders
-in one response. At 28 the spider saw 21-26 of the 50 in-stock processors, and
-asking for a second page earned a 307 followed by four 429s
-(`response_status_count/429: 4`).
-
-Raising it to 100 did not help: that appears to exceed the filter app's maximum
-and it falls back to its own default page of 24. Worse, the app rewrites the
-address bar with `history.replaceState` after load and drops `usf_take`, so the
-spider's own `response.url` no longer contained the value it had asked for and
-the crawl stopped after one page with `Could not parse usf_take ... Stopping`.
-It now carries the value through `cb_kwargs` instead of reading it back out of
-a URL the page mutates.
-
-**The `usf_take` theory turned out to be wrong.** Asking for 56 produced 22
-tiles, and 28 produced 21-26 and 100 produced 24: the number barely moves, so
-the parameter is not sizing the response at all. The likely mechanism is
-client-side: this is a filter app that paginates in the browser, and only the
-tiles in view are rendered, so a headless 1280x720 Chromium materialises about
-two dozen cards and stops. That matters because the hardcoded log line "the
-in-stock collection holds 50" came from a manual browser check, and the run
-cannot currently see the difference between "the store has 22" and "the page
-only painted 22". This one is open, and it needs a measurement rather than
-another guess.
+**Elitehubs — the grid was never the data source.** The collection page is
+painted by a client-side filter app, and a headless browser only materialises
+21–26 of the 50 in-stock processors the site's own filter advertises, at every
+`usf_take` from 28 to 100 — so no amount of pointing at divs could close the
+gap. The page fills its grid from a hosted search API, and that API answers
+the same question in one request with a `total` field: 50 products, each with
+price and stock on hand. The spider reads the API and checks its own rows
+against the site's number (`captured N of the site's 50`); first run was 50
+of 50, and every price the old tile spider ever produced matches the API's
+value, so it is the same catalogue read whole instead of read as far as the
+page painted it.
 
 **Vishal Peripherals — 10 of 46.** The spider was reading
 
@@ -286,10 +209,10 @@ Category 113 is the Processor term, confirmed via
 The 2026-11-19 run answered that: the JSON route is blocked too, with the same
 immediate 403 (`GET /wp-json/wc/store/v1/products?category=113&per_page=100 →
 403`). So this is not a Cloudflare HTML challenge that a browser could solve —
-it is the IP, on every route. The same spider returns all 67 rows from a home
-connection. It stays in the repo and keeps logging its 403 every run, but it is
-out of `EXPECTED_VENDORS` until it can be given a proxy, which is the only thing
-that changes this.
+it is the IP, on every route. The 2026-11-19/20 experiments extended that:
+the Windows runner pool is refused identically, so neither hosted IP range
+serves this site. The same spider returns all 67 rows from a home connection,
+and the local nightly run (21:30 IST) is what puts them in the database.
 
 **Computech Store — new, 101 products.** A custom Tailwind/htmx storefront, not
 WooCommerce (every `/wp-json/` route is 404), so it is scraped from the grid at
@@ -314,10 +237,13 @@ stock filter it would have stored 119 unbuyable prices, mostly older
 generations the store leaves buried rather than delisting.
 
 The 15:46 run moved it onto Playwright and it still returned 403 — in 0.2 s,
-with `cf.errors.css` and `cf-no-screenshot-error.png` in the response. That is
-Cloudflare refusing the runner's IP before any document exists, the same block
-as PC Studio, and no browser can solve it. The spider stays as it is so that a
-proxy is the only thing needed to bring the vendor back.
+with `cf.errors.css` and `cf-no-screenshot-error.png` in the response. The
+2026-11-19/20 experiments closed the remaining routes: the Windows runner
+pool is refused identically, and the WooCommerce Store API — which answers
+200 from a residential connection with the same 213 products, prices, and
+stock flags — is 403 from both pools too. The block covers every route from
+both hosted IP ranges, so no runner change reaches this vendor; the local
+nightly run (21:30 IST) puts its 70 rows in the database from the home IP.
 
 **Shweta Computers — re-added, via Shopify JSON.** The old spider pinned
 `filter.v.price.lte=69699` into its URL, so every processor above ₹69,699 was
@@ -328,18 +254,13 @@ site rate-limits hard (`429`, body `local_rate_limited`), so whether the runner
 gets through is only knowable from a run; the spider logs the status and
 payload head instead of raising.
 
-It got through at 15:25 (81 rows) and was refused at 15:46: four attempts, six
-seconds apart, then `Gave up retrying`. The window in that header is
-`Retry-After: 60`, so all four attempts fell inside one window. Scrapy's retry
-is not `Retry-After` aware and AutoThrottle paces by latency rather than by
-status, so the retry count was never the problem — the spacing was. It now
-runs with AutoThrottle off, a fixed 20 s delay and six attempts, which spans
-about two minutes and outlasts the window.
-
-That the two runs were twenty minutes apart matters, but only secondarily: one
-request per run is nowhere near a per-IP budget, so the trigger is that GitHub
-runners share egress IPs. It is the one vendor whose reliability we do not
-control.
+The 429 is a per-IP budget on Shopify's side, and GitHub runners share egress
+IPs with thousands of other jobs, so whether a run draws one with budget left
+is a lottery. Measured on 2026-11-19/20: the same hour produced 429 seven
+times on the Ubuntu pool and 200-first-try with 81 rows on the Windows pool —
+twice. The nightly job therefore runs on the Windows pool
+(`.github/workflows/daily-scrape.yml`), where the budget has been clean on
+every draw so far; the local nightly run covers any night the pool is spent.
 
 ### What the 2026-11-18 log showed
 
@@ -377,23 +298,14 @@ name and the collection page as its link. It then killed the normalizer and with
 it the whole night's insert. Both ends are guarded now: the spider skips
 untitled tiles, and the normalizer drops nameless rows instead of dying.
 
-### Why a local run sees no Elitehubs
+### Why Elitehubs stopped being a 429 problem
 
-The 429 is per-IP, not global. Same code, same day: the GitHub Actions runner
-collected 26 Elitehubs rows, a home connection collected 0 —
-
-```
-HTTP/2 429   retry-after: 60   server: cloudflare   x-dc: gcp-asia-southeast1
-body: local_rate_limited
-```
-
-It survives a real browser (Playwright) and a plain JSON endpoint
-(`/collections/processor/products.json` returns the same 18 bytes), so it cannot
-be JavaScript rendering or a selector problem. Nothing in the code fixes a
-blocked IP, and nothing needs fixing while the scheduled runner keeps working.
-
-A local run will therefore fail the vendor check on Elitehubs. That is the
-correct outcome: a local snapshot really is incomplete.
+Until 2026-11-19 the spider read the collection page's rendered grid, and the
+storefront's Cloudflare answered some IPs with 429 (`local_rate_limited`) —
+the GitHub runner collected 26 rows while a home connection collected 0 on
+the same day. Reading the storefront's search API on a different host
+(`svc-3-usf.hotyon.com`) removed that exposure entirely: the API has never
+rate-limited either pool, and it is where the page's own data comes from.
 
 ## Failure detection
 
@@ -407,12 +319,13 @@ level, so `master_script.py` checks every vendor's row count after the insert:
   alone misses.
 * **Disappearance** (`EXPECTED_VENDORS`) — a spider that vanishes entirely is
   reported by name rather than as a silently shorter total. The list holds the
-  nine vendors the runner must always produce. PC Studio is excluded while its
-  new Store API route is unproven from the runner: if the block extends to
-  `/wp-json/`, keeping it expected would fail the job every night for a cause no
-  code change can fix, which is how a useful alert turns into wallpaper. It is
-  added back the moment a run reports its 67 rows. Its per-spider
-  `pcstudio: 0 items` line still names it every night, so nothing is hidden.
+  nine vendors the runner must always produce. PC Studio is excluded: both
+  hosted IP pools are proven refused on every route, so keeping it expected
+  would fail the job every night for a cause no code change can fix, which is
+  how a useful alert turns into wallpaper — its rows come from the local
+  nightly run instead. SCL Gaming is still in the list, which keeps the
+  runner build red every night for the same unfixable cause; moving it out is
+  a deliberate product decision, not a code one.
 
 Failures exit non-zero, so the GitHub Actions run goes red and emails, instead of
 completing green with a vendor missing. The check runs *after* the commit, so the
