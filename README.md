@@ -24,14 +24,14 @@ Live frontend (auto-refreshed from this pipeline's data):
         ┌───────────────┬───────────────┼───────────────┬──────────────┐
         ▼               ▼               ▼               ▼              ▼
    Scrapy spiders  Scrapy spiders  Scrapy spiders  Scrapy spiders  Scrapy spiders
-   elitehubs*      theitdepot      mdcomputers     pcstudio        vedant, vishal*,
-   (Playwright)    (http)          (http)          (Playwright)    ezpz (http)
+   mdcomputers     theitdepot      elitehubs       shweta          computech
+   vedant          ezpz            vishal*         sclgaming*      pcstudio
         └───────────────┴───────────────┴───────┬───────┴──────────────┘
                                                 ▼
                                     merge + dedup by (link)
                                                 ▼
                         normalize_cpu_names.py — match raw listings
-                        against cpu_data.csv specs dictionary (~99% match)
+                        against cpu_data.csv specs dictionary (98% match)
                                                 ▼
                  ┌──────────────────────────────┴─────────────────────────┐
                  ▼                                                        ▼
@@ -40,7 +40,9 @@ Live frontend (auto-refreshed from this pipeline's data):
                                                                  is_synthetic flag)
 ```
 
-`*` = JavaScript-rendered sites handled with `scrapy-playwright`.
+`*` = JavaScript-rendered sites handled with `scrapy-playwright` (Vishal's grid
+is painted client-side; SCL's listing is too, and its source IP is blocked, so
+neither spider can run on a hosted runner).
 
 ## The data model (and why)
 
@@ -64,7 +66,7 @@ always holds the latest observed price. The website reads this.
 ## Backfilled history (synthetic, clearly flagged)
 
 Real history only exists since Oct 2026, so the charts needed a backfill. Rather
-than random fake data, 3 months of history (the anchor window) **fitted to observed market
+than random fake data, 4 months of history (17 Jul → today, the anchor window) **fitted to observed market
 anchors**:
 
 1. `backfill/pcpt_reference_scraper.py` scraped 90-day price-trend charts of a
@@ -90,7 +92,7 @@ cpu_price_tracker/
   validation.py              post-run vendor health check (see below)
   listing.py                 parses a vendor's own "Showing X of N" total
   normalize_cpu_names.py     raw name cleaning + specs-dictionary matching
-  cpu_data.csv               curated specs dictionary (185 CPUs: cores, threads, TDP…)
+  cpu_data.csv               curated specs dictionary (184 CPUs: cores, threads, TDP…)
   settings.py                Scrapy config (Playwright handlers, delays, UA)
 certs/ca.pem                 Aiven MySQL CA certificate (gitignored)
 ```
@@ -180,9 +182,7 @@ of 50, and every price the old tile spider ever produced matches the API's
 value, so it is the same catalogue read whole instead of read as far as the
 page painted it.
 
-**Vishal Peripherals — 10 of 46.** The spider was reading
-
-**Vishal Peripherals — 10 of 46.** The spider was reading
+**Vishal Peripherals — 10 of 46, now 42.** The spider was reading
 `/collections/processors?page=N`, which shows 20 tiles of which half are out of
 stock and exposes no working next-page link, so it stopped after one page. The
 spider now uses the store search with the availability filter applied
