@@ -1,11 +1,3 @@
-"""Elitehubs -- the in-stock processors, from the storefront's search API.
-
-The collection page renders its grid through a client-side filter app, and a
-headless browser only paints the first page of it (21-26 of the 50 the site's
-own filter advertises). The page fills its grid from a JSON search API, which
-answers with all of them in one request plus a "total" to check against.
-"""
-
 import json
 import urllib.parse
 
@@ -14,7 +6,7 @@ import scrapy
 from cpu_price_tracker.items import CpuPriceTrackerItem
 
 SEARCH_API = "https://svc-3-usf.hotyon.com/search"
-COLLECTION = "278532915293"  # the collection behind /collections/processor
+COLLECTION = "278532915293"
 TAKE = 100
 
 

@@ -1,10 +1,3 @@
-"""PC Studio -- the catalogue from its WooCommerce Store API.
-
-The HTML page sits behind Cloudflare, which refuses the runner before any
-document is served. The storefront also publishes the same catalogue as JSON
-on /wp-json/wc/store/v1/products (category 113 is "Processor", 67 products).
-"""
-
 import json
 
 import scrapy
@@ -37,7 +30,6 @@ class PcstudioSpider(scrapy.Spider):
         try:
             products = json.loads(response.text)
         except ValueError:
-            # A Cloudflare challenge page is HTML: say so instead of crashing.
             self.logger.error(
                 "PC Studio: expected JSON, got HTTP %s: %r", response.status, response.text[:160]
             )
@@ -57,9 +49,6 @@ class PcstudioSpider(scrapy.Spider):
             if not name or not link:
                 continue
 
-            # prices.price is an integer string in the store's smallest unit,
-            # and currency_minor_unit says how many decimal places that is.
-            # This store reports 0, so "36380" is already Rs 36,380.
             price = None
             prices = product.get("prices") or {}
             raw = prices.get("price")

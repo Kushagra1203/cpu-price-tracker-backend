@@ -1,6 +1,7 @@
 import scrapy
 from cpu_price_tracker.items import CpuPriceTrackerItem
 
+
 class mdcomputerSpider(scrapy.Spider):
     name = "mdcomputers"
     allowed_domains = ["mdcomputers.in"]
@@ -25,7 +26,6 @@ class mdcomputerSpider(scrapy.Spider):
                     price = int(price)
                 except ValueError:
                     price = None
-
 
             item = CpuPriceTrackerItem()
             item['name'] = name

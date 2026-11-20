@@ -1,9 +1,3 @@
-"""SCL Gaming -- the in-stock processors from an 11-page WooCommerce listing.
-
-An out-of-stock card looks identical to a buyable one (same photo, same price,
-no badge); the only signal is each card's "instock"/"outofstock" class.
-"""
-
 import re
 
 import scrapy
@@ -17,12 +11,6 @@ MAX_PAGES = 25
 
 
 async def _wait_for_grid(page):
-    """Wait for the product grid, but never raise.
-
-    The plain ``PageMethod("wait_for_selector", ...)`` raises on timeout, and
-    scrapy-playwright then throws the whole response away -- taking the HTTP
-    status with it, which is the only thing that explains a block.
-    """
     try:
         await page.wait_for_selector("div.e-loop-item", state="attached", timeout=15000)
     except PlaywrightTimeout:
@@ -44,7 +32,6 @@ class SclgamingSpider(scrapy.Spider):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Each product appears twice in the markup (slide + grid cell).
         self.seen_links = set()
 
     def start_requests(self):
@@ -103,8 +90,6 @@ class SclgamingSpider(scrapy.Spider):
             "SCL Gaming page %d: %d cards, %d new items", page, len(cards), new_links
         )
 
-        # A page past the end still returns 200 with the last page's links,
-        # so "no new links" is the stop condition, not an empty grid.
         if new_links == 0 or page >= MAX_PAGES:
             return
         yield self.page_request(page + 1)

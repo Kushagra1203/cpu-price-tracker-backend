@@ -1,6 +1,7 @@
 import scrapy
 from cpu_price_tracker.items import CpuPriceTrackerItem
 
+
 class EzpzsolutionsSpider(scrapy.Spider):
     name = "ezpzsolutions"
     allowed_domains = ["www.ezpzsolutions.in"]
@@ -36,10 +37,8 @@ class EzpzsolutionsSpider(scrapy.Spider):
             item['vendor'] = 'Ezpz Solutions'
             yield item
 
-        # Pagination with stop condition
         next_page = response.css("a.next.page-numbers::attr(href)").get()
         if next_page:
             yield scrapy.Request(next_page, callback=self.parse)
         else:
             self.logger.info("No next page link found, stopping")
-            

@@ -1,11 +1,3 @@
-"""Vedant Computers -- 41 processors, all on one page.
-
-?limit=100 makes OpenCart render the whole catalogue in a single response, so
-there is no pagination and no need for a browser: the product grid and the
-"Showing 1 to 41 of 41 (1 Pages)" banner are both in the server HTML. Dropping
-Playwright here removes a browser launch from every run.
-"""
-
 import scrapy
 
 from cpu_price_tracker.items import CpuPriceTrackerItem

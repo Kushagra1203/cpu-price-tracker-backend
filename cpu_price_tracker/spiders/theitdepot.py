@@ -1,10 +1,3 @@
-"""The IT Depot -- 53 processors across 5 pages of 12.
-
-The banner ("Showing 1 to 12 of 53 (5 Pages)") states the catalogue size, so it
-drives the stop condition. Pages are ~1 MB of HTML, so this runs at one request
-every 3 s -- back-to-back fetching earned a 429 from the rate limiter.
-"""
-
 import scrapy
 
 from cpu_price_tracker.items import CpuPriceTrackerItem

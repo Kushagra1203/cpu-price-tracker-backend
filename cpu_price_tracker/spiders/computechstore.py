@@ -1,10 +1,3 @@
-"""Computech Store -- a plain HTML scrape, 20 products per request.
-
-Custom Tailwind/htmx storefront, no WooCommerce API (every /wp-json/ route is
-404). Pagination stops on repeated links because a page past the end re-serves
-the last page instead of returning an empty grid.
-"""
-
 import re
 
 import scrapy
@@ -60,8 +53,6 @@ class ComputechstoreSpider(scrapy.Spider):
             price_text = card.css("div.items-baseline span::text").get()
             digits = re.sub(r"[^\d]", "", price_text) if price_text else ""
             if not digits:
-                # No price element: the store swaps it for a "notify me" block
-                # on out-of-stock products.
                 continue
 
             item = CpuPriceTrackerItem()

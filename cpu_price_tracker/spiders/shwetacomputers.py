@@ -1,11 +1,3 @@
-"""Shweta Computers -- the collection from Shopify's products.json.
-
-The theme's card markup changed once and the spider silently produced zero
-rows, and its URL pinned a Rs 69,699 price ceiling that hid the high-end
-catalogue. products.json carries title, handle, and variants with price and an
-available flag -- no selectors to guess.
-"""
-
 import json
 
 import scrapy
@@ -21,9 +13,6 @@ class ShwetacomputersSpider(scrapy.Spider):
     allowed_domains = ["shwetacomputers.com"]
 
     custom_settings = {
-        # The site answers with 429 + Retry-After: 60 once an IP has spent its
-        # budget, and Scrapy's retry is not Retry-After aware -- so the attempts
-        # have to outlast the window: 20 s apart, six of them.
         "AUTOTHROTTLE_ENABLED": False,
         "DOWNLOAD_DELAY": 20,
         "RETRY_TIMES": 6,
@@ -46,7 +35,6 @@ class ShwetacomputersSpider(scrapy.Spider):
         try:
             payload = json.loads(response.text)
         except ValueError:
-            # A Cloudflare challenge page is HTML: say so instead of crashing.
             self.logger.error(
                 "Shweta: expected JSON, got HTTP %s: %r", response.status, response.text[:160]
             )

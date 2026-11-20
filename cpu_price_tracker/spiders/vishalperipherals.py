@@ -1,10 +1,3 @@
-"""Vishal Peripherals -- the in-stock processors from Shopify's search app.
-
-The collection URL shows 20 tiles of which half are out of stock and exposes no
-working next-page link. The search route filters availability server-side,
-paginates cleanly, and states its own size ("46 of 141 products").
-"""
-
 import re
 
 import scrapy
@@ -30,7 +23,6 @@ class VishalperipheralsSpider(scrapy.Spider):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # The same product can appear twice in the grid (desktop/mobile markup).
         self.seen_links = set()
         self.expected_total = None
 
